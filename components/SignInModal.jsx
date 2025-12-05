@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import OtpInput from './OtpInput';
 import { X, Truck, Undo2 } from 'lucide-react';
-import { auth, googleProvider } from '../lib/firebase';
+import { auth, googleProvider, getRecaptchaVerifier } from '../lib/firebase';
 import { signInWithPopup, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, signInWithPhoneNumber } from 'firebase/auth';
 import Image from 'next/image';
 import GoogleIcon from '../assets/google.png';
@@ -40,36 +40,35 @@ const SignInModal = ({ open, onClose }) => {
     if (typeof window === 'undefined') return;
     if (!open || !usePhone) return;
     if (window.recaptchaVerifier) return;
-    const container = document.getElementById('recaptcha-container');
-    console.log('DEBUG Recaptcha:', { auth, container, open, usePhone });
-    if (!auth) {
-      setError('Authentication system is not initialized. Please contact support.');
-      console.error('RecaptchaVerifier error: auth is undefined');
-      return;
-    }
-    if (!container) {
-      setError('Recaptcha container not found. Please reload the page.');
-      console.error('RecaptchaVerifier error: container not found');
-      return;
-    }
-    // Use compat RecaptchaVerifier from window.firebase.auth
-    const RecaptchaVerifier = window.firebase && window.firebase.auth && window.firebase.auth.RecaptchaVerifier;
-    if (!RecaptchaVerifier) {
-      setError('RecaptchaVerifier (compat) is not available. Please reload the page.');
-      console.error('RecaptchaVerifier error: compat RecaptchaVerifier is not available');
-      return;
-    }
-    try {
-      window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
-        size: 'invisible',
-        callback: () => {
-          // reCAPTCHA solved
-        }
-      }, auth);
-    } catch (error) {
-      setError('Failed to initialize Recaptcha. Please reload the page.');
-      console.error('RecaptchaVerifier error:', error);
-    }
+    let cancelled = false;
+    const tryInitRecaptcha = () => {
+      if (cancelled) return;
+      const container = document.getElementById('recaptcha-container');
+      if (!auth) {
+        setError('Authentication system is not initialized. Please contact support.');
+        return;
+      }
+      if (!container) {
+        setError('Recaptcha container not found. Please reload the page.');
+        return;
+      }
+      const RecaptchaVerifier = window.firebase && window.firebase.auth && window.firebase.auth.RecaptchaVerifier;
+      if (!RecaptchaVerifier) {
+        // Wait and retry
+        setTimeout(tryInitRecaptcha, 100);
+        return;
+      }
+      try {
+        window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
+          size: 'invisible',
+          callback: () => {}
+        }, auth);
+      } catch (error) {
+        setError('Failed to initialize Recaptcha. Please reload the page.');
+      }
+    };
+    tryInitRecaptcha();
+    return () => { cancelled = true; };
   }, [open, usePhone]);
 
   if (!open) return null;

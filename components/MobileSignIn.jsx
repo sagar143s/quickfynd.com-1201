@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { auth } from '@/lib/firebase';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { getRecaptchaVerifier, auth } from '@/lib/firebase';
 import OtpInput from '@/components/OtpInput';
 
 export default function MobileSignIn({ onSuccess }) {
@@ -16,13 +15,24 @@ export default function MobileSignIn({ onSuccess }) {
     setLoading(true);
     setError('');
     try {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
-          size: 'invisible',
-        }, auth);
-      }
-      const appVerifier = window.recaptchaVerifier;
-      const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
+      if (typeof window === 'undefined') throw new Error('Window is undefined');
+      const ensureRecaptcha = () => {
+        return new Promise((resolve, reject) => {
+          const check = () => {
+            const container = document.getElementById('recaptcha-container');
+            if (!container) return reject(new Error('Recaptcha container not found'));
+            const RecaptchaVerifier = window.firebase && window.firebase.auth && window.firebase.auth.RecaptchaVerifier;
+            if (!RecaptchaVerifier) return setTimeout(check, 100);
+            if (!window.recaptchaVerifier) {
+              window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', { size: 'invisible' }, auth);
+            }
+            resolve(window.recaptchaVerifier);
+          };
+          check();
+        });
+      };
+      const appVerifier = await ensureRecaptcha();
+      const confirmationResult = await window.firebase.auth().signInWithPhoneNumber(phone, appVerifier);
       setConfirmation(confirmationResult);
       setStep('otp');
     } catch (err) {
