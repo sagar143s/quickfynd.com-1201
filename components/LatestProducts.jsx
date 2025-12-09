@@ -30,22 +30,44 @@ const ProductCard = ({ product }) => {
   const dispatch = useDispatch()
   const { getToken } = useAuth()
   const cartItems = useSelector(state => state.cart.cartItems)
-  const itemQuantity = cartItems[product.id] || 0
+  const itemQuantity = cartItems[product._id] || 0
 
   const primaryImage = getImageSrc(product, 0)
   const secondaryImage = getImageSrc(product, 1)
-  
+
   const hasSecondary = secondaryImage !== 'https://ik.imagekit.io/jrstupuke/placeholder.png' && 
                        secondaryImage !== primaryImage &&
                        product.images?.length > 1
-  
+
   const discount =
     product.mrp && product.mrp > product.price
       ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
       : 0
 
-  const ratingValue = Math.round(product.averageRating || 0)
-  const reviewCount = product.ratingCount || 0
+  // Review fetching logic (axios, like product page)
+  const [reviews, setReviews] = useState([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        setLoadingReviews(true);
+        const { data } = await import('axios').then(ax => ax.default.get(`/api/review?productId=${product._id}`));
+        setReviews(data.reviews || []);
+      } catch (error) {
+        // silent fail
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+    fetchReviews();
+  }, [product._id]);
+
+  const ratingValue = reviews.length > 0
+    ? Math.round(reviews.reduce((acc, curr) => acc + (curr.rating || 0), 0) / reviews.length)
+    : Math.round(product.averageRating || 0);
+  const reviewCount = reviews.length > 0
+    ? reviews.length
+    : (product.ratingCount || 0);
 
   const productName = (product.name || product.title || 'Untitled Product').length > 30
     ? (product.name || product.title || 'Untitled Product').slice(0, 23) + '...'
@@ -61,7 +83,7 @@ const ProductCard = ({ product }) => {
 
   return (
     <Link
-      href={`/product/${product.slug || product.id || ''}`}
+      href={`/product/${product.slug || product._id || ''}`}
       className={`group bg-white rounded-xl shadow-sm ${hasSecondary ? 'hover:shadow-lg' : ''} transition-all duration-300 flex flex-col relative overflow-hidden`}
       onMouseEnter={hasSecondary ? () => setHovered(true) : null}
       onMouseLeave={hasSecondary ? () => setHovered(false) : null}
@@ -115,20 +137,18 @@ const ProductCard = ({ product }) => {
         </h3>
         
         <div className="flex items-center mb-0">
-          {reviewCount > 0 ? (
-            <>
-              {[...Array(5)].map((_, i) => (
-                <FaStar
-                  key={i}
-                  size={10}
-                  className={i < ratingValue ? 'text-yellow-400' : 'text-gray-300'}
-                />
-              ))}
-              <span className="text-gray-500 text-[8px] sm:text-xs ml-1">({reviewCount})</span>
-            </>
-          ) : (
-            <span className="text-[10px] sm:text-xs text-gray-400">No reviews yet</span>
-          )}
+          <>
+            {[...Array(5)].map((_, i) => (
+              <FaStar
+                key={i}
+                size={10}
+                className={i < ratingValue ? 'text-yellow-400' : 'text-gray-300'}
+              />
+            ))}
+            <span className="text-gray-500 text-[8px] sm:text-xs ml-1">
+              {reviewCount > 0 ? `(${reviewCount})` : 'No reviews yet'}
+            </span>
+          </>
         </div>
 
         <div className="mt-auto flex items-center justify-between">
@@ -211,7 +231,7 @@ const BestSelling = () => {
               </div>
             ))
           : baseSorted.map((product) => (
-              <ProductCard key={product._id} product={product} />
+              <ProductCard key={product._id || product.id} product={product} />
             ))}
       </div>
     </div>
