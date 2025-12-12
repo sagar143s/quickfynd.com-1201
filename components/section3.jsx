@@ -21,8 +21,8 @@ export default function TopDeals() {
         const allProducts = productData.products || productData;
 
         const section = adminSections.find(s => s.category);
-let result = allProducts.filter(p => p.category === "Trending Deals");
-
+// let result = allProducts.filter(p => p.category === "Trending Deals");
+let result = allProducts;
         if (section && section.category) {
           result = allProducts.filter(p => p.category === section.category);
         }
