@@ -3,6 +3,7 @@ import ReduxProvider from "@/lib/ReduxProvider";
 import Navbar from "@/components/Navbar";
 import TopBarNotification from "@/components/TopBarNotification";
 import Footer from "@/components/Footer";
+import SupportBar from "@/components/SupportBar";
 import StoreProvider from "@/app/StoreProvider";
 import { Toaster } from "react-hot-toast";
 
@@ -15,6 +16,7 @@ export default function ClientLayout({ children }) {
         <Toaster />
         {children}
       </StoreProvider>
+      <SupportBar />
       <Footer />
     </ReduxProvider>
   );
