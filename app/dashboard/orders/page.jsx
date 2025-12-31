@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
-import Navbar from '@/components/Navbar'
-import Footer from '@/components/Footer'
 import Loading from '@/components/Loading'
 import Link from 'next/link'
 import axios from 'axios'
@@ -47,22 +45,16 @@ export default function DashboardOrdersPage() {
 
   if (user === null) {
     return (
-      <>
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-10">
-          <h1 className="text-2xl font-semibold text-slate-800 mb-3">Dashboard / Orders</h1>
-          <p className="text-slate-600 mb-6">Please sign in to view your orders.</p>
-          <Link href="/" className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg">Go to Home</Link>
-        </div>
-        <Footer />
-      </>
+      <div className="max-w-4xl mx-auto px-4 py-10">
+        <h1 className="text-2xl font-semibold text-slate-800 mb-3">Dashboard / Orders</h1>
+        <p className="text-slate-600 mb-6">Please sign in to view your orders.</p>
+        <Link href="/" className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg">Go to Home</Link>
+      </div>
     )
   }
 
   return (
-    <>
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-6">
         <DashboardSidebar />
 
         <main className="md:col-span-3">
@@ -102,8 +94,8 @@ export default function DashboardOrdersPage() {
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Status</p>
-                            <select
-                              className={`inline-block px-3 py-1 text-xs font-medium rounded-full border focus:outline-none ${
+                            <span
+                              className={`inline-block px-3 py-1 text-xs font-medium rounded-full ${
                                 order.status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
                                 order.status === 'OUT_FOR_DELIVERY' ? 'bg-teal-100 text-teal-700' :
                                 order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-700' :
@@ -118,35 +110,9 @@ export default function DashboardOrdersPage() {
                                 order.status === 'CANCELLED' ? 'bg-red-100 text-red-700' :
                                 'bg-slate-100 text-slate-700'
                               }`}
-                              value={order.status || 'ORDER_PLACED'}
-                              onChange={async (e) => {
-                                const newStatus = e.target.value;
-                                try {
-                                  const token = await auth.currentUser.getIdToken(true);
-                                  await axios.post('/api/orders/update-status', { orderId, status: newStatus }, {
-                                    headers: { Authorization: `Bearer ${token}` },
-                                  });
-                                  toast.success('Order status updated!');
-                                  setOrders((prev) => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
-                                } catch (err) {
-                                  toast.error(err?.response?.data?.error || 'Failed to update status');
-                                }
-                              }}
                             >
-                              <option value="ORDER_PLACED">Order Placed</option>
-                              <option value="CONFIRMED">Confirmed</option>
-                              <option value="PROCESSING">Processing</option>
-                              <option value="PICKUP_REQUESTED">Pickup Requested</option>
-                              <option value="WAITING_FOR_PICKUP">Waiting for Pickup</option>
-                              <option value="PICKED_UP">Picked Up</option>
-                              <option value="WAREHOUSE_RECEIVED">Warehouse Received</option>
-                              <option value="SHIPPED">Shipped</option>
-                              <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
-                              <option value="DELIVERED">Delivered</option>
-                              <option value="RETURN_REQUESTED">Return Requested</option>
-                              <option value="RETURNED">Returned</option>
-                              <option value="CANCELLED">Cancelled</option>
-                            </select>
+                              {order.status || 'ORDER_PLACED'}
+                            </span>
                           </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end">
@@ -156,27 +122,6 @@ export default function DashboardOrdersPage() {
                           >
                             {isExpanded ? 'Hide Details' : 'View Details'}
                           </button>
-                          {/* Pick Up Button: show if not picked up or shipped */}
-                          {order.status !== 'PICKED_UP' && order.status !== 'SHIPPED' && order.status !== 'DELIVERED' && (
-                            <button
-                              className="px-4 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition"
-                              onClick={async () => {
-                                try {
-                                  const token = await auth.currentUser.getIdToken(true)
-                                  await axios.post('/api/orders/pickup', { orderId }, {
-                                    headers: { Authorization: `Bearer ${token}` },
-                                  })
-                                  toast.success('Pickup requested!')
-                                  // Optionally refresh orders
-                                  setOrders((prev) => prev.map(o => o._id === orderId ? { ...o, status: 'PICKED_UP' } : o))
-                                } catch (err) {
-                                  toast.error(err?.response?.data?.error || 'Failed to request pickup')
-                                }
-                              }}
-                            >
-                              Pick Up
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -313,12 +258,6 @@ export default function DashboardOrdersPage() {
           )}
         </main>
       </div>
-      <Footer />
-    </>
-  )
+    )
+  }
 }
- 
-// fetch orders after user is known
-// placed after component to avoid re-definition on every render
-// but in Next.js client components, we can inline via useEffect above
-// augment the existing effect to load orders

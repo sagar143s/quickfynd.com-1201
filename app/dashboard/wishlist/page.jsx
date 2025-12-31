@@ -8,8 +8,6 @@ import Image from "next/image";
 import { HeartIcon, ShoppingCartIcon, TrashIcon, StarIcon, CheckCircle2 } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { addToCart } from "@/lib/features/cart/cartSlice";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Loading from "@/components/Loading";
 import DashboardSidebar from "@/components/DashboardSidebar";
 import Link from "next/link";
@@ -125,24 +123,18 @@ export default function DashboardWishlistPage() {
 
     if (user === null) {
         return (
-            <>
-                <Navbar />
-                <div className="max-w-4xl mx-auto px-4 py-10">
-                    <h1 className="text-2xl font-semibold text-slate-800 mb-3">My Wishlist</h1>
-                    <p className="text-slate-600 mb-6">Please sign in to view your wishlist.</p>
-                    <Link href="/" className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg">Go to Home</Link>
-                </div>
-                <Footer />
-            </>
+            <div className="max-w-4xl mx-auto px-4 py-10">
+                <h1 className="text-2xl font-semibold text-slate-800 mb-3">My Wishlist</h1>
+                <p className="text-slate-600 mb-6">Please sign in to view your wishlist.</p>
+                <Link href="/" className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg">Go to Home</Link>
+            </div>
         );
     }
 
     return (
-        <>
-            <Navbar />
-            <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-                <DashboardSidebar />
-                <main className="md:col-span-3">
+        <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+            <DashboardSidebar />
+            <main className="md:col-span-3">
                     <h1 className="text-2xl font-semibold text-slate-800 mb-6">My Wishlist</h1>
 
                     {wishlist.length === 0 ? (
@@ -255,7 +247,6 @@ export default function DashboardWishlistPage() {
                     )}
                 </main>
             </div>
-            <Footer />
-        </>
-    );
+        );
+    }
 }
