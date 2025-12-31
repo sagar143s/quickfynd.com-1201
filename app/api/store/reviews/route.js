@@ -40,17 +40,35 @@ export async function GET(request) {
         
         // Get ratings for these products
         const ratings = await Rating.find({ productId: { $in: productIds } })
-            .populate({
-                path: 'userId',
-                select: '_id name email image'
-            })
             .sort({ createdAt: -1 })
             .lean();
+        
+        // Populate user data for ratings
+        const enrichedRatings = await Promise.all(
+            ratings.map(async (rating) => {
+                let userData = null;
+                // Try to populate if userId is a valid ObjectId
+                if (typeof rating.userId === 'string' && rating.userId.match(/^[a-fA-F0-9]{24}$/)) {
+                    userData = await User.findById(rating.userId).select('_id name email image').lean();
+                } else if (typeof rating.userId === 'object' && rating.userId?._id) {
+                    userData = rating.userId;
+                }
+                // If no userData found, use customerName/customerEmail from rating
+                return {
+                    ...rating,
+                    user: userData || { 
+                        name: rating.customerName || 'Guest', 
+                        email: rating.customerEmail,
+                        image: '/placeholder-avatar.png'
+                    }
+                };
+            })
+        );
         
         // Attach ratings to products
         const productsWithRatings = products.map(product => ({
             ...product,
-            rating: ratings.filter(r => r.productId === product._id.toString())
+            rating: enrichedRatings.filter(r => r.productId === product._id.toString())
         }));
 
         return Response.json({ products: productsWithRatings });
@@ -168,16 +186,20 @@ export async function POST(request) {
             rating,
             review,
             images: imageUrls,
+            customerName,
+            customerEmail,
             approved: true
         });
 
-        // Populate user
-        const populatedReview = await Rating.findById(newReview._id)
-            .populate({
-                path: 'userId',
-                select: '_id name image'
-            })
-            .lean();
+        // Return review with user data
+        const populatedReview = {
+            ...newReview.toObject(),
+            user: {
+                _id: user._id,
+                name: user.name,
+                image: user.image
+            }
+        };
 
         return Response.json({
             success: true,

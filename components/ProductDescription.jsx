@@ -177,7 +177,7 @@ const ProductDescription = ({ product, reviews = [], loadingReviews = false, onR
                                         {/* User Avatar */}
                                         <div className="flex-shrink-0">
                                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 via-red-400 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-                                                {(item.userId && item.userId.name && item.userId.name[0]) ? item.userId.name[0].toUpperCase() : 'U'}
+                                                {(item.user?.name || item.userId?.name || item.customerName) ? (item.user?.name || item.userId?.name || item.customerName)[0].toUpperCase() : 'U'}
                                             </div>
                                         </div>
                                         
@@ -186,7 +186,7 @@ const ProductDescription = ({ product, reviews = [], loadingReviews = false, onR
                                             {/* User Info & Rating */}
                                             <div className="flex items-start justify-between mb-2">
                                             <div>
-                                                    <p className="font-semibold text-gray-900">{item.userId && item.userId.name ? item.userId.name : 'Unknown User'}</p>
+                                                    <p className="font-semibold text-gray-900">{item.user?.name || item.userId?.name || item.customerName || 'Guest User'}</p>
                                                     {/* <p className="text-xs text-gray-400 mt-0.5">
                                                         {new Date(item.createdAt).toLocaleDateString('en-US', {
                                                             day: 'numeric',

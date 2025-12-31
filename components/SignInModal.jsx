@@ -131,7 +131,7 @@ const SignInModal = ({ open, onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Section - Image */}
-        <div className="w-full bg-gradient-to-br from-amber-200 via-amber-100 to-yellow-100 relative overflow-hidden h-80">
+        <div className="w-full bg-gradient-to-br from-amber-200 via-amber-100 to-yellow-100 relative overflow-hidden h-48 sm:h-60 md:h-80">
           {/* Image Container - Continuous Scrolling */}
           <div 
             className="absolute inset-0 flex"
@@ -142,24 +142,26 @@ const SignInModal = ({ open, onClose }) => {
             }}
           >
             {/* Render image twice for seamless loop */}
-            <div style={{ width: '2000px', height: '100%', flexShrink: 0 }}>
+            <div style={{ width: '2000px', height: '100%', flexShrink: 0, position: 'relative' }}>
               <Image
                 src={Imageslider}
                 alt="Sign In 1"
                 width={2000}
                 height={320}
-                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                style={{ objectFit: 'cover', width: '100%', height: '100%', display: 'block' }}
                 priority
+                unoptimized
               />
             </div>
-            <div style={{ width: '2000px', height: '100%', flexShrink: 0 }}>
+            <div style={{ width: '2000px', height: '100%', flexShrink: 0, position: 'relative' }}>
               <Image
                 src={Imageslider}
                 alt="Sign In 2"
                 width={2000}
                 height={320}
-                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                style={{ objectFit: 'cover', width: '100%', height: '100%', display: 'block' }}
                 priority
+                unoptimized
               />
             </div>
           </div>
@@ -170,7 +172,7 @@ const SignInModal = ({ open, onClose }) => {
         </div>
 
         {/* Bottom Section - Form */}
-        <div className="w-full p-6 sm:p-8 relative">
+        <div className="w-full p-4 sm:p-6 md:p-8 relative">
           <button
             className="absolute top-3 right-3 p-1 rounded-full hover:bg-gray-100"
             onClick={onClose}
@@ -179,14 +181,14 @@ const SignInModal = ({ open, onClose }) => {
             <X size={22} />
           </button>
 
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">Hala! Let's get started</h2>
-          <p className="text-gray-600 text-sm mb-6">Create account or sign in to your account</p>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800 mb-1">Hala! Let's get started</h2>
+          <p className="text-gray-600 text-xs sm:text-sm mb-4 sm:mb-6">Create account or sign in to your account</p>
 
           {/* Tab Buttons */}
-          <div className="flex gap-3 mb-6">
+          <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-6">
             <button
               onClick={() => setIsRegister(false)}
-              className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition ${
+              className={`flex-1 py-2 sm:py-2.5 px-3 sm:px-4 rounded-lg font-semibold transition text-sm ${
                 !isRegister
                   ? 'bg-gray-800 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -196,7 +198,7 @@ const SignInModal = ({ open, onClose }) => {
             </button>
             <button
               onClick={() => setIsRegister(true)}
-              className={`flex-1 py-2.5 px-4 rounded-lg font-semibold transition ${
+              className={`flex-1 py-2 sm:py-2.5 px-3 sm:px-4 rounded-lg font-semibold transition text-sm ${
                 isRegister
                   ? 'bg-gray-800 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -207,12 +209,12 @@ const SignInModal = ({ open, onClose }) => {
           </div>
 
           {/* Form */}
-          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+          <form className="flex flex-col gap-3 sm:gap-4" onSubmit={handleSubmit}>
             {isRegister && (
               <input
                 type="text"
                 placeholder="Full Name"
-                className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm"
+                className="border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
@@ -221,7 +223,7 @@ const SignInModal = ({ open, onClose }) => {
             <input
               type={isRegister ? "email" : "text"}
               placeholder={isRegister ? "Email" : "Email or mobile number"}
-              className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm"
+              className="border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
@@ -229,7 +231,7 @@ const SignInModal = ({ open, onClose }) => {
             <input
               type="password"
               placeholder="Password"
-              className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm"
+              className="border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
@@ -238,7 +240,7 @@ const SignInModal = ({ open, onClose }) => {
               <input
                 type="password"
                 placeholder="Confirm Password"
-                className="border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-sm"
+                className="border border-gray-300 rounded-lg px-3 sm:px-4 py-2 sm:py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-xs sm:text-sm"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 required
@@ -246,14 +248,14 @@ const SignInModal = ({ open, onClose }) => {
             )}
             
             {error && (
-              <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+              <div className="text-red-500 text-xs sm:text-sm bg-red-50 p-2 sm:p-3 rounded-lg">
                 {error}
               </div>
             )}
 
             <button
               type="submit"
-              className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2.5 rounded-lg transition text-sm disabled:opacity-50"
+              className="bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 sm:py-2.5 rounded-lg transition text-xs sm:text-sm disabled:opacity-50"
               disabled={loading}
             >
               {loading ? 'Loading...' : 'CONTINUE'}
@@ -261,7 +263,7 @@ const SignInModal = ({ open, onClose }) => {
           </form>
 
           {/* Divider */}
-          <div className="flex items-center gap-3 my-5">
+          <div className="flex items-center gap-2 sm:gap-3 my-3 sm:my-5">
             <div className="flex-1 h-px bg-gray-200" />
             <span className="text-gray-400 text-xs">OR</span>
             <div className="flex-1 h-px bg-gray-200" />
@@ -271,10 +273,10 @@ const SignInModal = ({ open, onClose }) => {
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-lg py-2.5 px-4 text-sm font-medium bg-white hover:bg-gray-50 transition mb-5"
+            className="w-full flex items-center justify-center gap-2 sm:gap-3 border border-gray-300 rounded-lg py-2 sm:py-2.5 px-3 sm:px-4 text-xs sm:text-sm font-medium bg-white hover:bg-gray-50 transition mb-3 sm:mb-5"
             disabled={loading}
           >
-            <Image src={GoogleIcon} alt="Google" width={18} height={18} style={{objectFit:'contain'}} />
+            <Image src={GoogleIcon} alt="Google" width={16} height={16} style={{objectFit:'contain'}} />
             <span className="text-gray-700">Continue with Google</span>
           </button>
 

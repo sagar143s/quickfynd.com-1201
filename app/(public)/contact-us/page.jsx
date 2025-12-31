@@ -27,7 +27,7 @@ export default function ContactUs() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-4">
+    <div className="max-w-[1250px] mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold mb-6 text-center">Contact Us</h1>
 
       {/* Success Message */}

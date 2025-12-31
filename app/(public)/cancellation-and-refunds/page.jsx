@@ -1,6 +1,6 @@
 export default function CancellationAndRefunds() {
   return (
-    <div className="max-w-3xl mx-auto py-12 px-4">
+    <div className="max-w-[1250px] mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold mb-6">Cancellation & Refund Policy</h1>
 
       <p className="mb-4">

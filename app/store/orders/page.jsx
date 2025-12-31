@@ -60,8 +60,56 @@ export default function StoreOrders() {
         trackingUrl: '',
         courier: ''
     });
+    const [filterStatus, setFilterStatus] = useState('ALL');
 
     const { user, getToken, loading: authLoading } = useAuth();
+
+    // Status options available
+    const STATUS_OPTIONS = [
+        { value: 'ORDER_PLACED', label: 'Order Placed', color: 'bg-blue-100 text-blue-700' },
+        { value: 'PROCESSING', label: 'Processing', color: 'bg-yellow-100 text-yellow-700' },
+        { value: 'SHIPPED', label: 'Shipped', color: 'bg-purple-100 text-purple-700' },
+        { value: 'DELIVERED', label: 'Delivered', color: 'bg-green-100 text-green-700' },
+        { value: 'CANCELLED', label: 'Cancelled', color: 'bg-red-100 text-red-700' },
+        { value: 'PAYMENT_FAILED', label: 'Payment Failed', color: 'bg-orange-100 text-orange-700' },
+        { value: 'RETURNED', label: 'Returned', color: 'bg-indigo-100 text-indigo-700' },
+        { value: 'RETURN_INITIATED', label: 'Return Initiated', color: 'bg-pink-100 text-pink-700' },
+        { value: 'RETURN_APPROVED', label: 'Return Approved', color: 'bg-pink-100 text-pink-700' },
+    ];
+
+    // Get status color
+    const getStatusColor = (status) => {
+        const statusOption = STATUS_OPTIONS.find(s => s.value === status);
+        return statusOption?.color || 'bg-gray-100 text-gray-700';
+    };
+
+    // Calculate order statistics
+    const getOrderStats = () => {
+        const stats = {
+            TOTAL: orders.length,
+            ORDER_PLACED: orders.filter(o => o.status === 'ORDER_PLACED').length,
+            PROCESSING: orders.filter(o => o.status === 'PROCESSING').length,
+            SHIPPED: orders.filter(o => o.status === 'SHIPPED').length,
+            DELIVERED: orders.filter(o => o.status === 'DELIVERED').length,
+            CANCELLED: orders.filter(o => o.status === 'CANCELLED').length,
+            PAYMENT_FAILED: orders.filter(o => o.status === 'PAYMENT_FAILED').length,
+            RETURNED: orders.filter(o => o.status === 'RETURNED').length,
+            PENDING_PAYMENT: orders.filter(o => !o.isPaid).length,
+            PENDING_SHIPMENT: orders.filter(o => !o.trackingId && ['ORDER_PLACED', 'PROCESSING'].includes(o.status)).length,
+        };
+        return stats;
+    };
+
+    // Filter orders based on selected status
+    const getFilteredOrders = () => {
+        if (filterStatus === 'ALL') return orders;
+        if (filterStatus === 'PENDING_PAYMENT') return orders.filter(o => !o.isPaid);
+        if (filterStatus === 'PENDING_SHIPMENT') return orders.filter(o => !o.trackingId && ['ORDER_PLACED', 'PROCESSING'].includes(o.status));
+        return orders.filter(o => o.status === filterStatus);
+    };
+
+    const stats = getOrderStats();
+    const filteredOrders = getFilteredOrders();
 
     // Function to update tracking details and notify customer
     const updateTrackingDetails = async () => {
@@ -142,9 +190,66 @@ export default function StoreOrders() {
 
     return (
         <>
-            <h1 className="text-2xl text-slate-500 mb-5">Store <span className="text-slate-800 font-medium">Orders</span></h1>
-            {orders.length === 0 ? (
-                <p>No orders found</p>
+            <h1 className="text-2xl text-slate-500 mb-6">Store <span className="text-slate-800 font-medium">Orders</span></h1>
+            
+            {/* Order Statistics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div 
+                    onClick={() => setFilterStatus('ALL')}
+                    className={`p-4 rounded-lg cursor-pointer transition-all ${filterStatus === 'ALL' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white border border-gray-200 text-slate-700'}`}
+                >
+                    <p className="text-xs opacity-75">Total Orders</p>
+                    <p className="text-2xl font-bold">{stats.TOTAL}</p>
+                </div>
+                <div 
+                    onClick={() => setFilterStatus('PENDING_PAYMENT')}
+                    className={`p-4 rounded-lg cursor-pointer transition-all ${filterStatus === 'PENDING_PAYMENT' ? 'bg-orange-600 text-white shadow-lg' : 'bg-white border border-gray-200 text-slate-700'}`}
+                >
+                    <p className="text-xs opacity-75">Pending Payment</p>
+                    <p className="text-2xl font-bold">{stats.PENDING_PAYMENT}</p>
+                </div>
+                <div 
+                    onClick={() => setFilterStatus('PROCESSING')}
+                    className={`p-4 rounded-lg cursor-pointer transition-all ${filterStatus === 'PROCESSING' ? 'bg-yellow-600 text-white shadow-lg' : 'bg-white border border-gray-200 text-slate-700'}`}
+                >
+                    <p className="text-xs opacity-75">Processing</p>
+                    <p className="text-2xl font-bold">{stats.PROCESSING}</p>
+                </div>
+                <div 
+                    onClick={() => setFilterStatus('SHIPPED')}
+                    className={`p-4 rounded-lg cursor-pointer transition-all ${filterStatus === 'SHIPPED' ? 'bg-purple-600 text-white shadow-lg' : 'bg-white border border-gray-200 text-slate-700'}`}
+                >
+                    <p className="text-xs opacity-75">Shipped</p>
+                    <p className="text-2xl font-bold">{stats.SHIPPED}</p>
+                </div>
+                <div 
+                    onClick={() => setFilterStatus('DELIVERED')}
+                    className={`p-4 rounded-lg cursor-pointer transition-all ${filterStatus === 'DELIVERED' ? 'bg-green-600 text-white shadow-lg' : 'bg-white border border-gray-200 text-slate-700'}`}
+                >
+                    <p className="text-xs opacity-75">Delivered</p>
+                    <p className="text-2xl font-bold">{stats.DELIVERED}</p>
+                </div>
+            </div>
+
+            {/* Status Filter Tabs */}
+            <div className="mb-6 flex flex-wrap gap-2">
+                {['ALL', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'PAYMENT_FAILED', 'RETURNED'].map(status => (
+                    <button
+                        key={status}
+                        onClick={() => setFilterStatus(status)}
+                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                            filterStatus === status
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-gray-100 text-slate-700 hover:bg-gray-200'
+                        }`}
+                    >
+                        {status === 'ALL' ? 'All Orders' : status === 'PAYMENT_FAILED' ? 'Payment Failed' : status.replace(/_/g, ' ')}
+                    </button>
+                ))}
+            </div>
+
+            {filteredOrders.length === 0 ? (
+                <p className="text-center py-8 text-slate-500">No orders found for this status</p>
             ) : (
                 <div className="overflow-x-auto w-full rounded-md shadow border border-gray-200">
                     <table className="w-full text-sm text-left text-gray-600">
@@ -155,19 +260,19 @@ export default function StoreOrders() {
                                 <th className="px-4 py-3">Customer</th>
                                 <th className="px-4 py-3">Total</th>
                                 <th className="px-4 py-3">Payment</th>
-                                <th className="px-4 py-3">Coupon</th>
                                 <th className="px-4 py-3">Status</th>
+                                <th className="px-4 py-3">Tracking</th>
                                 <th className="px-4 py-3">Date</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {orders.map((order, index) => (
+                            {filteredOrders.map((order, index) => (
                                 <tr
                                     key={order._id}
                                     className="hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
                                     onClick={() => openModal(order)}
                                 >
-                                    <td className="pl-6 text-green-600">{index + 1}</td>
+                                    <td className="pl-6 text-green-600 font-medium">{index + 1}</td>
                                     <td className="px-4 py-3 font-mono text-xs text-slate-700">{getOrderNumber(order._id)}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex flex-col gap-1">
@@ -184,29 +289,32 @@ export default function StoreOrders() {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 font-medium text-slate-800">{currency}{order.total}</td>
-                                    <td className="px-4 py-3">{order.paymentMethod}</td>
                                     <td className="px-4 py-3">
-                                        {order.isCouponUsed ? (
-                                            <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
-                                                {order.coupon?.code}
-                                            </span>
-                                        ) : (
-                                            "—"
-                                        )}
+                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${order.isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {order.isPaid ? '✓ Paid' : 'Pending'}
+                                        </span>
                                     </td>
                                     <td className="px-4 py-3" onClick={e => { e.stopPropagation(); }}>
                                         <select
                                             value={order.status}
                                             onChange={e => updateOrderStatus(order._id, e.target.value, getToken, fetchOrders)}
-                                            className="border-gray-300 rounded-md text-sm focus:ring focus:ring-blue-200"
+                                            className={`border-gray-300 rounded-md text-sm font-medium px-2 py-1 focus:ring focus:ring-blue-200 ${getStatusColor(order.status)}`}
                                         >
-                                            <option value="ORDER_PLACED">ORDER_PLACED</option>
-                                            <option value="PROCESSING">PROCESSING</option>
-                                            <option value="SHIPPED">SHIPPED</option>
-                                            <option value="DELIVERED">DELIVERED</option>
+                                            {STATUS_OPTIONS.map(status => (
+                                                <option key={status.value} value={status.value}>{status.label}</option>
+                                            ))}
                                         </select>
                                     </td>
-                                    <td className="px-4 py-3 text-gray-500">{new Date(order.createdAt).toLocaleString()}</td>
+                                    <td className="px-4 py-3">
+                                        {order.trackingId ? (
+                                            <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                                                {order.trackingId.substring(0, 8)}...
+                                            </span>
+                                        ) : (
+                                            <span className="text-slate-400 text-xs">Not shipped</span>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-500 text-xs">{new Date(order.createdAt).toLocaleDateString()}</td>
                                 </tr>
                             ))}
                         </tbody>

@@ -62,8 +62,8 @@ export default function ProductBySlug() {
     }, [slug, products]);
 
     useEffect(() => {
-        if (product && product.id) {
-            fetchReviews(product.id);
+        if (product && (product._id || product.id)) {
+            fetchReviews(product._id || product.id);
         }
     }, [product]);
 
@@ -101,7 +101,7 @@ export default function ProductBySlug() {
                 ) : product ? (
                     <>
                         <ProductDetails product={product} reviews={reviews} loadingReviews={loadingReviews} />
-                        <ProductDescription product={product} reviews={reviews || []} loadingReviews={loadingReviews} onReviewAdded={() => fetchReviews(product.id)} />
+                        <ProductDescription product={product} reviews={reviews || []} loadingReviews={loadingReviews} onReviewAdded={() => fetchReviews(product._id || product.id)} />
                         {/* Related Products */}
                         {relatedProducts.length > 0 && (
                             <div className="px-4 mt-12 mb-16">

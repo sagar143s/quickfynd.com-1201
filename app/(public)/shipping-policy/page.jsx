@@ -2,7 +2,7 @@
 
 export default function ShippingPolicyPage() {
   return (
-    <div className="bg-gray-50">
+    <div className="bg-gray-50 max-w-[1250px] mx-auto">
       <div className="max-w-3xl mx-auto px-4 py-10 min-h-[60vh]">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Shipping & Delivery Policy

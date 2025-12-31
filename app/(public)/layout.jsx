@@ -1,10 +1,6 @@
 'use client'
-import Banner from "@/components/Banner";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import GuestOrderLinker from "@/components/GuestOrderLinker";
-import TopBarNotification from "@/components/TopBarNotification";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProducts } from "@/lib/features/product/productSlice";
@@ -56,7 +52,6 @@ function PublicLayoutGuest({ children }) {
             {/* <Banner /> */}
             <main className={`flex-1 ${isHomePage ? 'pb-8' : 'pb-20'} lg:pb-0`}>{children}</main>
             {!isHomePage && <MobileBottomNav />}
-            <Footer />
         </div>
     );
 }

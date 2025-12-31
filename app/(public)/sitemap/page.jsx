@@ -75,7 +75,7 @@ export default function SitemapPage() {
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-16 px-4">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1250px] mx-auto">
           <div className="flex items-center gap-3 mb-4">
             <FiGrid className="w-8 h-8" />
             <h1 className="text-4xl md:text-5xl font-bold">Sitemap</h1>
@@ -87,7 +87,7 @@ export default function SitemapPage() {
       </div>
 
       {/* Sitemap Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-[1250px] mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {sitemapSections.map((section, idx) => (
             <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">

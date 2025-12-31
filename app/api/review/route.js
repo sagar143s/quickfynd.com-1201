@@ -121,20 +121,34 @@ export async function GET(request) {
         }
 
         // Only show approved reviews to customers
-
         const reviews = await Rating.find({ 
             productId,
             approved: true 
         })
-        .populate({
-            path: 'userId',
-            select: '_id name image email',
-            model: 'User'
-        })
         .sort({ createdAt: -1 })
         .lean();
 
-        return Response.json({ reviews });
+        // Enrich reviews with user data
+        const enrichedReviews = await Promise.all(
+            reviews.map(async (review) => {
+                let userData = null;
+                // Try to populate if userId is a valid ObjectId
+                if (typeof review.userId === 'string' && review.userId.match(/^[a-fA-F0-9]{24}$/)) {
+                    userData = await User.findById(review.userId).select('_id name image email').lean();
+                }
+                // If no userData found, use customerName from review
+                return {
+                    ...review,
+                    user: userData || { 
+                        name: review.customerName || 'Guest', 
+                        email: review.customerEmail,
+                        image: '/placeholder-avatar.png'
+                    }
+                };
+            })
+        );
+
+        return Response.json({ reviews: enrichedReviews });
 
     } catch (error) {
         console.error('Fetch reviews error:', error);
