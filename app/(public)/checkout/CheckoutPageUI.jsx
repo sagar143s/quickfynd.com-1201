@@ -506,14 +506,23 @@ export default function CheckoutPage() {
   }
   
   if (!cartItems || Object.keys(cartItems).length === 0) {
+    // Auto-redirect to shop after 3 seconds if cart is empty
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        router.push('/shop');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }, [router]);
+
     return (
       <div className="py-20 text-center">
         <div className="text-xl font-bold text-gray-900 mb-2">Your cart is empty</div>
+        <div className="text-gray-600 mb-4">Redirecting to shop...</div>
         <button 
           onClick={() => router.push('/shop')}
           className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold"
         >
-          Continue Shopping
+          Continue Shopping Now
         </button>
       </div>
     );

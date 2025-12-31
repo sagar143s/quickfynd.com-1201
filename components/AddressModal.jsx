@@ -59,19 +59,8 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                 phone: phoneNumber,
                 phoneCode: initialAddress.phoneCode || '+91',
             })
-            // Set phone input ref value directly
-            if (phoneInputRef.current) {
-                phoneInputRef.current.value = phoneNumber;
-            }
         }
     }, [isEdit, initialAddress])
-
-    // Update phone input value whenever modal opens or address changes
-    useEffect(() => {
-        if (open && phoneInputRef.current && address.phone) {
-            phoneInputRef.current.value = address.phone;
-        }
-    }, [open, address.phone])
 
     const countries = [
         { name: 'India', code: '+91' },
@@ -310,6 +299,7 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                                 ))}
                             </select>
                             <input 
+                                key={address.id || 'new'}
                                 ref={phoneInputRef}
                                 name="phone" 
                                 onChange={(e) => {
