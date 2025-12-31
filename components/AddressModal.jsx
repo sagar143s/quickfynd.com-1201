@@ -66,6 +66,13 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
         }
     }, [isEdit, initialAddress])
 
+    // Update phone input value whenever modal opens or address changes
+    useEffect(() => {
+        if (open && phoneInputRef.current && address.phone) {
+            phoneInputRef.current.value = address.phone;
+        }
+    }, [open, address.phone])
+
     const countries = [
         { name: 'India', code: '+91' },
         { name: 'United Arab Emirates', code: '+971' },
