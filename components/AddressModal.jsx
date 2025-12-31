@@ -96,6 +96,18 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                 toast.error('User not authenticated. Please sign in again.');
                 return;
             }
+
+            // Validate phone number length
+            if (!address.phone || address.phone.length < 7 || address.phone.length > 15) {
+                toast.error('Phone number must be between 7 and 15 digits');
+                return;
+            }
+
+            // Validate phone contains only numbers
+            if (!/^[0-9]+$/.test(address.phone)) {
+                toast.error('Phone number must contain only digits');
+                return;
+            }
             
             const token = await getToken()
             
@@ -294,14 +306,15 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                                 onChange={handleAddressChange} 
                                 value={address.phone} 
                                 className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
-                                type="tel" 
+                                type="text"
+                                inputMode="numeric"
                                 placeholder="9876543210" 
                                 required 
                                 autoComplete="off"
-                                pattern="[0-9]+"
-                                minLength="7"
-                                maxLength="15"
-                                title="Please enter a valid phone number (7-15 digits)"
+                                onInput={(e) => {
+                                    // Allow only numbers during input
+                                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                                }}
                             />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Enter phone number without country code</p>
