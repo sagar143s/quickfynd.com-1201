@@ -3,7 +3,7 @@ import { addAddress, fetchAddress } from "@/lib/features/address/addressSlice"
 
 import axios from "axios"
 import { XIcon } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { toast } from "react-hot-toast"
 import { useDispatch } from "react-redux"
 
@@ -19,6 +19,7 @@ const keralaDistricts = [
 const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddress = null, isEdit = false, onAddressUpdated }) => {
     const { user, getToken } = useAuth()
     const dispatch = useDispatch()
+    const phoneInputRef = useRef(null)
 
     const [address, setAddress] = useState({
         name: '',
@@ -58,6 +59,10 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                 phone: phoneNumber,
                 phoneCode: initialAddress.phoneCode || '+91',
             })
+            // Set phone input ref value directly
+            if (phoneInputRef.current) {
+                phoneInputRef.current.value = phoneNumber;
+            }
         }
     }, [isEdit, initialAddress])
 
@@ -298,16 +303,18 @@ const AddressModal = ({ open, setShowAddressModal, onAddressAdded, initialAddres
                                 ))}
                             </select>
                             <input 
+                                ref={phoneInputRef}
                                 name="phone" 
                                 onChange={(e) => {
                                     // Only allow numbers
                                     const value = e.target.value.replace(/[^0-9]/g, '');
+                                    e.target.value = value;
                                     setAddress({
                                         ...address,
                                         phone: value
                                     });
                                 }}
-                                value={address.phone} 
+                                defaultValue={address.phone}
                                 className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
                                 type="text"
                                 inputMode="numeric"
