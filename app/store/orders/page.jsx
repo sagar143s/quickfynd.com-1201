@@ -1,16 +1,5 @@
 "use client";
 
-// Helper to get short order number (same as order success page)
-function getOrderNumber(id) {
-    if (!id) return '';
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-        hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-    }
-    const num = (hash % 900000) + 100000;
-    return String(num);
-}
-
 // Update order status
 const updateOrderStatus = async (orderId, newStatus, getToken, fetchOrders) => {
     try {
@@ -273,7 +262,7 @@ export default function StoreOrders() {
                                     onClick={() => openModal(order)}
                                 >
                                     <td className="pl-6 text-green-600 font-medium">{index + 1}</td>
-                                    <td className="px-4 py-3 font-mono text-xs text-slate-700">{getOrderNumber(order._id)}</td>
+                                    <td className="px-4 py-3 font-mono text-xs text-slate-700">{order.shortOrderNumber || order._id.slice(0, 8)}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex flex-col gap-1">
                                             <span className="font-medium text-slate-800">
@@ -329,7 +318,7 @@ export default function StoreOrders() {
                             <div className="flex justify-between items-center">
                                 <div>
                                     <h2 className="text-2xl font-bold mb-1">Order Details</h2>
-                                    <p className="text-blue-100 text-xs">Order ID: {String(selectedOrder._id).slice(0, 8).toUpperCase()} &nbsp;|&nbsp; Order No: <span className='font-mono text-white'>{getOrderNumber(selectedOrder._id)}</span></p>
+                                    <p className="text-blue-100 text-xs">Order ID: {String(selectedOrder._id).slice(0, 8).toUpperCase()} &nbsp;|&nbsp; Order No: <span className='font-mono text-white'>{selectedOrder.shortOrderNumber || selectedOrder._id.slice(0, 8)}</span></p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button

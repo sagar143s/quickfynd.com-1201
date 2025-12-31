@@ -77,16 +77,20 @@ export default function DashboardOrdersPage() {
                 return (
                   <div key={orderId} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                     {/* Order Header */}
-                    <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-                      <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="px-6 py-4 border-b border-slate-200">
+                      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                         <div className="flex flex-wrap items-center gap-4">
                           <div>
-                            <p className="text-xs text-slate-500">Order ID</p>
-                            <p className="font-semibold text-slate-800 break-all">{orderId}</p>
+                            <p className="text-xs text-slate-500">Order #</p>
+                            <p className="font-semibold text-slate-800">{order.shortOrderNumber || orderId.substring(0, 8).toUpperCase()}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Date</p>
                             <p className="text-sm text-slate-700">{new Date(order.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Items</p>
+                            <p className="text-sm font-semibold text-slate-800">{totalItems}</p>
                           </div>
                           <div>
                             <p className="text-xs text-slate-500">Total</p>
@@ -114,8 +118,27 @@ export default function DashboardOrdersPage() {
                               {order.status || 'ORDER_PLACED'}
                             </span>
                           </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Payment</p>
+                            <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${order.isPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {order.isPaid ? '✓ Paid' : 'Pending'}
+                            </span>
+                          </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end">
+                          {order.trackingUrl && (
+                            <a
+                              href={order.trackingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-4 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              Track Order
+                            </a>
+                          )}
                           <button
                             onClick={() => setExpandedOrder(isExpanded ? null : orderId)}
                             className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition"
@@ -124,11 +147,85 @@ export default function DashboardOrdersPage() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Product Preview Thumbnails */}
+                      {orderItems.length > 0 && (
+                        <div className="flex gap-3 items-center">
+                          <p className="text-xs text-slate-500 font-medium">Products:</p>
+                          <div className="flex gap-2 flex-wrap">
+                            {orderItems.slice(0, 4).map((item, idx) => {
+                              const product = item.productId || item.product || {}
+                              return (
+                                <div key={idx} className="relative">
+                                  <div className="w-16 h-16 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
+                                    {product.images?.[0] ? (
+                                      <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">No image</div>
+                                    )}
+                                  </div>
+                                  {item.quantity > 1 && (
+                                    <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+                                      {item.quantity}
+                                    </span>
+                                  )}
+                                </div>
+                              )
+                            })}
+                            {orderItems.length > 4 && (
+                              <div className="w-16 h-16 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center text-sm font-semibold text-slate-600">
+                                +{orderItems.length - 4}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Order Details (Expandable) */}
                     {isExpanded && (
                       <div className="p-6 space-y-6">
+                        {/* Order Reference */}
+                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs">
+                          <p className="text-slate-600">Full Order ID: <span className="font-mono text-slate-800">{orderId}</span></p>
+                        </div>
+
+                        {/* Payment & Summary - Moved to top */}
+                        <div className="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-5">
+                          <h3 className="text-sm font-semibold text-slate-800 mb-4">Payment Summary</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-600">Subtotal:</span>
+                              <span className="font-medium text-slate-800">₹{((order.total || 0) - (order.shippingFee || 0)).toFixed(2)}</span>
+                            </div>
+                            {order.shippingFee > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-slate-600">Shipping:</span>
+                                <span className="font-medium text-slate-800">₹{(order.shippingFee || 0).toFixed(2)}</span>
+                              </div>
+                            )}
+                            {order.isCouponUsed && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-green-600">Discount Applied:</span>
+                                <span className="font-medium text-green-600">-₹{(order.coupon?.discount || 0).toFixed(2)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between font-bold text-slate-800 pt-3 border-t border-slate-300">
+                              <span>Total Amount:</span>
+                              <span className="text-lg">₹{(order.total || 0).toFixed(2)}</span>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-slate-300">
+                              <p className="text-xs text-slate-600 mb-2">Payment Method & Status</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-slate-800">{order.paymentMethod || 'Not specified'}</span>
+                                <span className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${order.isPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                  {order.isPaid ? '✓ PAID' : '⏳ PENDING'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Products */}
                         <div>
                           <h3 className="text-sm font-semibold text-slate-800 mb-3">Order Items ({totalItems})</h3>
@@ -136,8 +233,8 @@ export default function DashboardOrdersPage() {
                             {orderItems.map((item, idx) => {
                               const product = item.productId || item.product || {}
                               return (
-                                <div key={idx} className="flex items-start gap-4 pb-3 border-b border-slate-100 last:border-0">
-                                  <div className="w-20 h-20 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0">
+                                <div key={idx} className="flex items-start gap-4 pb-4 border-b border-slate-100 last:border-0">
+                                  <div className="w-24 h-24 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 border border-slate-200">
                                     {product.images?.[0] ? (
                                       <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
                                     ) : (
@@ -145,12 +242,22 @@ export default function DashboardOrdersPage() {
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <h4 className="font-medium text-slate-800 truncate">{product.name || 'Product'}</h4>
-                                    <p className="text-sm text-slate-600 mt-1">Quantity: {item.quantity}</p>
-                                    <p className="text-sm text-slate-600">Price: ₹{(item.price || 0).toFixed(2)}</p>
+                                    <h4 className="font-semibold text-slate-800 text-sm mb-1">{product.name || 'Product'}</h4>
+                                    {product.sku && <p className="text-xs text-slate-500 mb-2">SKU: {product.sku}</p>}
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                      <div>
+                                        <p className="text-xs text-slate-500">Quantity</p>
+                                        <p className="font-medium text-slate-800">{item.quantity}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-xs text-slate-500">Unit Price</p>
+                                        <p className="font-medium text-slate-800">₹{(item.price || 0).toFixed(2)}</p>
+                                      </div>
+                                    </div>
                                   </div>
                                   <div className="text-right">
-                                    <p className="font-semibold text-slate-800">₹{((item.price || 0) * (item.quantity || 0)).toFixed(2)}</p>
+                                    <p className="text-xs text-slate-500 mb-1">Line Total</p>
+                                    <p className="font-bold text-slate-800 text-lg">₹{((item.price || 0) * (item.quantity || 0)).toFixed(2)}</p>
                                   </div>
                                 </div>
                               )
@@ -163,36 +270,35 @@ export default function DashboardOrdersPage() {
                           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
                               <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                               </svg>
                               Tracking Information
                             </h3>
                             <div className="space-y-2 text-sm">
                               {order.courier && (
                                 <div className="flex">
-                                  <span className="text-slate-600 w-24">Courier:</span>
-                                  <span className="font-medium text-slate-800">{order.courier}</span>
+                                  <span className="text-slate-600 w-24 font-medium">Courier:</span>
+                                  <span className="font-semibold text-slate-800">{order.courier}</span>
                                 </div>
                               )}
                               {order.trackingId && (
                                 <div className="flex">
-                                  <span className="text-slate-600 w-24">Tracking ID:</span>
-                                  <span className="font-mono font-medium text-slate-800">{order.trackingId}</span>
+                                  <span className="text-slate-600 w-24 font-medium">Tracking ID:</span>
+                                  <span className="font-mono font-semibold text-slate-800">{order.trackingId}</span>
                                 </div>
                               )}
                               {order.trackingUrl && (
-                                <div className="flex">
-                                  <span className="text-slate-600 w-24">Track Order:</span>
+                                <div className="flex gap-3 mt-3 pt-3 border-t border-blue-200">
                                   <a 
                                     href={order.trackingUrl} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline flex items-center gap-1"
+                                    className="inline-block px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
                                   >
-                                    Click here to track
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                     </svg>
+                                    Track Your Order
                                   </a>
                                 </div>
                               )}
@@ -203,15 +309,15 @@ export default function DashboardOrdersPage() {
                         {/* Shipping Address */}
                         {(order.shippingAddress || order.addressId) && (
                           <div>
-                            <h3 className="text-sm font-semibold text-slate-800 mb-2">Shipping Address</h3>
-                            <div className="text-sm text-slate-600 space-y-1">
+                            <h3 className="text-sm font-semibold text-slate-800 mb-3">Shipping Address</h3>
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-600 space-y-1">
                               {order.shippingAddress ? (
                                 <>
-                                  <p className="font-medium text-slate-800">{order.shippingAddress.name}</p>
+                                  <p className="font-bold text-slate-800">{order.shippingAddress.name}</p>
                                   <p>{order.shippingAddress.street}</p>
                                   <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}</p>
                                   <p>{order.shippingAddress.country}</p>
-                                  {order.shippingAddress.phone && <p>Phone: {order.shippingAddress.phone}</p>}
+                                  {order.shippingAddress.phone && <p className="font-medium text-slate-800 mt-2">📞 {order.shippingAddress.phone}</p>}
                                 </>
                               ) : order.addressId && (
                                 <p>Address ID: {order.addressId.toString()}</p>
@@ -219,36 +325,6 @@ export default function DashboardOrdersPage() {
                             </div>
                           </div>
                         )}
-
-                        {/* Payment & Summary */}
-                        <div className="border-t border-slate-200 pt-4">
-                          <div className="flex justify-between text-sm mb-2">
-                            <span className="text-slate-600">Subtotal:</span>
-                            <span className="text-slate-800">₹{((order.total || 0) - (order.shippingFee || 0)).toFixed(2)}</span>
-                          </div>
-                          {order.shippingFee > 0 && (
-                            <div className="flex justify-between text-sm mb-2">
-                              <span className="text-slate-600">Shipping:</span>
-                              <span className="text-slate-800">₹{(order.shippingFee || 0).toFixed(2)}</span>
-                            </div>
-                          )}
-                          {order.isCouponUsed && (
-                            <div className="flex justify-between text-sm mb-2">
-                              <span className="text-green-600">Discount Applied:</span>
-                              <span className="text-green-600">-₹{(order.coupon?.discount || 0).toFixed(2)}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between font-semibold text-slate-800 pt-2 border-t border-slate-200">
-                            <span>Total:</span>
-                            <span>₹{(order.total || 0).toFixed(2)}</span>
-                          </div>
-                          <div className="mt-2 text-sm">
-                            <span className="text-slate-600">Payment: </span>
-                            <span className={`font-medium ${order.isPaid ? 'text-green-600' : 'text-amber-600'}`}>
-                              {order.paymentMethod} {order.isPaid ? '(Paid)' : '(Pending)'}
-                            </span>
-                          </div>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -259,5 +335,4 @@ export default function DashboardOrdersPage() {
         </main>
       </div>
     )
-  }
 }
