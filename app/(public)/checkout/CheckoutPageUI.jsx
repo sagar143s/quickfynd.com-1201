@@ -56,6 +56,7 @@ export default function CheckoutPage() {
   const [showSignIn, setShowSignIn] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showPincodeModal, setShowPincodeModal] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
 
   // Coupon logic
   const [coupon, setCoupon] = useState("");
@@ -219,63 +220,103 @@ export default function CheckoutPage() {
       return false;
     }
 
-    const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount: total * 100, // Amount in paise
-      currency: "INR",
-      name: "QuickFynd",
-      description: "Order Payment",
-      image: "/logo.png",
-      handler: async function (response) {
-        try {
-          // Verify payment on backend AND create order
-          const verifyRes = await fetch("/api/razorpay/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              paymentPayload: paymentPayload,
-            }),
-          });
+    if (!window.Razorpay) {
+      setFormError("Payment system failed to load. Please refresh and try again.");
+      setPlacingOrder(false);
+      return false;
+    }
 
-          const responseData = await verifyRes.json();
+    try {
+      // Step 1: Create Razorpay order on backend
+      const orderRes = await fetch("/api/razorpay/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: Math.round(total), // Ensure it's a whole number
+          currency: "INR",
+          receipt: `order_${Date.now()}`,
+        }),
+      });
 
-          if (verifyRes.ok && responseData.success && responseData.orderId) {
-            // Payment successful - clear cart and redirect to success page
-            dispatch(clearCart());
-            router.push(`/order-success?orderId=${responseData.orderId}`);
-          } else {
-            // Payment or order creation failed - redirect to failed page
-            setPlacingOrder(false);
-            router.push(`/order-failed?reason=${encodeURIComponent(responseData.message || 'Payment verification failed')}`);
-          }
-        } catch (error) {
-          // Network or parsing error - redirect to failed page
-          setPlacingOrder(false);
-          router.push(`/order-failed?reason=${encodeURIComponent('Payment verification error. Please contact support.')}`);
-        }
-      },
-      prefill: {
-        name: form.name || user?.displayName || "",
-        email: form.email || user?.email || "",
-        contact: form.phone || "",
-      },
-      theme: {
-        color: "#F97316", // Orange color
-      },
-      modal: {
-        ondismiss: function() {
-          setPlacingOrder(false);
-          router.push(`/order-failed?reason=${encodeURIComponent('Payment cancelled by user')}`);
-        }
+      if (!orderRes.ok) {
+        const errorData = await orderRes.json();
+        setFormError(errorData.error || "Failed to create payment order");
+        setPlacingOrder(false);
+        return false;
       }
-    };
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
-    return true;
+      const orderData = await orderRes.json();
+      if (!orderData.success || !orderData.orderId) {
+        setFormError("Failed to initialize payment");
+        setPlacingOrder(false);
+        return false;
+      }
+
+      // Step 2: Open Razorpay checkout with the order ID
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        order_id: orderData.orderId, // Use the order ID from backend
+        amount: Math.round(total * 100), // Amount in paise
+        currency: "INR",
+        name: "QuickFynd",
+        description: "Order Payment",
+        image: "/logo.png",
+        handler: async function (response) {
+          try {
+            // Verify payment on backend AND create order
+            const verifyRes = await fetch("/api/razorpay/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                paymentPayload: paymentPayload,
+              }),
+            });
+
+            const responseData = await verifyRes.json();
+
+            if (verifyRes.ok && responseData.success && responseData.orderId) {
+              // Payment successful - clear cart and redirect to success page
+              dispatch(clearCart());
+              router.push(`/order-success?orderId=${responseData.orderId}`);
+            } else {
+              // Payment or order creation failed - redirect to failed page
+              setPlacingOrder(false);
+              router.push(`/order-failed?reason=${encodeURIComponent(responseData.message || 'Payment verification failed')}`);
+            }
+          } catch (error) {
+            // Network or parsing error - redirect to failed page
+            setPlacingOrder(false);
+            router.push(`/order-failed?reason=${encodeURIComponent('Payment verification error. Please contact support.')}`);
+          }
+        },
+        prefill: {
+          name: paymentPayload.guestInfo?.name || form.name || user?.displayName || "",
+          email: paymentPayload.guestInfo?.email || form.email || user?.email || "",
+          contact: paymentPayload.guestInfo?.phone || form.phone || "",
+        },
+        theme: {
+          color: "#F97316", // Orange color
+        },
+        modal: {
+          ondismiss: function() {
+            setPlacingOrder(false);
+            router.push(`/order-failed?reason=${encodeURIComponent('Payment cancelled by user')}`);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+      return true;
+    } catch (error) {
+      console.error("Payment initiation error:", error);
+      setFormError("Failed to initiate payment. Please try again.");
+      setPlacingOrder(false);
+      return false;
+    }
   };
 
   const [formError, setFormError] = useState("");
@@ -577,17 +618,23 @@ export default function CheckoutPage() {
                     <div className="text-blue-700 text-sm">{addressList[0].district || addressList[0].city}</div>
                     <div className="text-gray-800 text-sm">{addressList[0].street}</div>
                     <div className="text-gray-800 text-sm">{addressList[0].city}, {addressList[0].state}, {addressList[0].country}</div>
-                    <div className="text-orange-500 text-sm font-semibold">{addressList[0].phoneCode} {addressList[0].phone}</div>
+                    <div className="text-orange-500 text-sm font-semibold">{addressList[0].phoneCode || '+91'} {addressList[0].phone}</div>
                     <div className="flex flex-col gap-1 mt-2 text-xs text-gray-700">
                       <span>Total: <span className="font-bold">₹ {subtotal.toLocaleString()}</span></span>
                       <span className="text-gray-500">Delivery charge: <span className="font-bold">₹ {shipping.toLocaleString()}</span></span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 ml-4">
-                    <button type="button" className="text-blue-600 text-xs font-semibold hover:underline" onClick={() => setShowAddressModal(true)}>
-                      Change address
+                    <button type="button" className="text-blue-600 text-xs font-semibold hover:underline" onClick={() => {
+                      setEditingAddressId(addressList[0]._id);
+                      setShowAddressModal(true);
+                    }}>
+                      Edit address
                     </button>
-                    <button type="button" className="text-blue-600 text-xs font-semibold hover:underline" onClick={() => setShowAddressModal(true)}>
+                    <button type="button" className="text-blue-600 text-xs font-semibold hover:underline" onClick={() => {
+                      setEditingAddressId(null);
+                      setShowAddressModal(true);
+                    }}>
                       Add new address
                     </button>
                     <button 
@@ -846,10 +893,24 @@ export default function CheckoutPage() {
           </button>
         </div>
       </div>
-      <AddressModal open={showAddressModal} setShowAddressModal={setShowAddressModal} onAddressAdded={(addr) => {
-        setForm(f => ({ ...f, addressId: addr._id }));
-        dispatch(fetchAddress({ getToken }));
-      }} />
+      <AddressModal 
+        open={showAddressModal} 
+        setShowAddressModal={(show) => {
+          setShowAddressModal(show);
+          if (!show) setEditingAddressId(null);
+        }} 
+        onAddressAdded={(addr) => {
+          setForm(f => ({ ...f, addressId: addr._id }));
+          dispatch(fetchAddress({ getToken }));
+          setEditingAddressId(null);
+        }}
+        initialAddress={editingAddressId ? addressList.find(a => a._id === editingAddressId) : null}
+        isEdit={!!editingAddressId}
+        onAddressUpdated={() => {
+          dispatch(fetchAddress({ getToken }));
+          setEditingAddressId(null);
+        }}
+      />
       <SignInModal open={showSignIn} onClose={() => setShowSignIn(false)} />
       <PincodeModal 
         open={showPincodeModal} 
