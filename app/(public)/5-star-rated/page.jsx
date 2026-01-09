@@ -2,18 +2,38 @@
 
 import ProductCard from "@/components/ProductCard";
 import { StarIcon } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { fetchProducts } from "@/lib/features/product/productSlice";
 
 export default function FiveStarRated() {
-    const products = useSelector(state => state.product.list);
+    const dispatch = useDispatch();
+    const [ratedProducts, setRatedProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    // Filter products with 5-star average rating
-    const fiveStarProducts = products.filter(product => {
-        if (!product.rating || product.rating.length === 0) return false;
-        
-        const averageRating = product.rating.reduce((acc, item) => acc + item.rating, 0) / product.rating.length;
-        return averageRating >= 4.5; // Products with 4.5+ stars
-    });
+    // Ensure products are loaded
+    // Prime cache with products (optional, non-blocking)
+    useEffect(() => {
+        dispatch(fetchProducts({ limit: 24 }));
+    }, [dispatch]);
+
+    // Compute average rating >= 4 by fetching approved reviews per product
+    useEffect(() => {
+        const fetchTopRated = async () => {
+            setLoading(true);
+            try {
+                const axios = (await import('axios')).default;
+                const { data } = await axios.get('/api/products/top-rated?threshold=4&limit=50');
+                setRatedProducts(data.products || []);
+            } catch (e) {
+                console.error('Failed to load top-rated products', e);
+                setRatedProducts([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTopRated();
+    }, []);
 
     return (
         <div className="bg-gray-50">
@@ -33,18 +53,20 @@ export default function FiveStarRated() {
                         </div>
                     </div>
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                        5 Star Rated Products
+                        4+ Star Rated Products
                     </h1>
                     <p className="text-gray-600">
-                        Discover our highest-rated products loved by customers ({fiveStarProducts.length} products)
+                        Showing products rated 4 stars and above ({ratedProducts.length} found)
                     </p>
                 </div>
 
                 {/* Products Grid */}
-                {fiveStarProducts.length > 0 ? (
+                {loading ? (
+                    <div className="text-center py-16 text-gray-500">Loading top-rated products…</div>
+                ) : ratedProducts.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                        {fiveStarProducts.map((product) => (
-                            <ProductCard key={product.id} product={product} />
+                        {ratedProducts.map((product, idx) => (
+                            <ProductCard key={product._id || product.id || idx} product={product} />
                         ))}
                     </div>
                 ) : (
@@ -53,7 +75,7 @@ export default function FiveStarRated() {
                             <StarIcon size={48} className="text-gray-400" />
                         </div>
                         <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                            No 5-Star Products Yet
+                            No products rated 4+ yet
                         </h2>
                         <p className="text-gray-500">
                             Check back soon for highly-rated products!

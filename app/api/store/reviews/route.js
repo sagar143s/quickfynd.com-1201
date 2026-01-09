@@ -116,6 +116,7 @@ export async function POST(request) {
         const customerName = formData.get('customerName');
         const customerEmail = formData.get('customerEmail');
         const images = formData.getAll('images');
+        const videos = formData.getAll('videos');
 
         if (!productId || !rating || !review || !customerName || !customerEmail) {
             return Response.json({ error: "Missing required fields" }, { status: 400 });
@@ -166,6 +167,22 @@ export async function POST(request) {
             );
         }
 
+        // Upload videos to ImageKit
+        let videoUrls = [];
+        if (videos.length > 0) {
+            videoUrls = await Promise.all(
+                videos.map(async (video) => {
+                    const buffer = Buffer.from(await video.arrayBuffer());
+                    const response = await imagekit.upload({
+                        file: buffer,
+                        fileName: `review_video_${Date.now()}_${video.name}`,
+                        folder: "reviews/videos"
+                    });
+                    return response.url;
+                })
+            );
+        }
+
         // Find or create user for this email
         let user = await User.findOne({ email: customerEmail }).lean();
 
@@ -186,6 +203,7 @@ export async function POST(request) {
             rating,
             review,
             images: imageUrls,
+            videos: videoUrls,
             customerName,
             customerEmail,
             approved: true

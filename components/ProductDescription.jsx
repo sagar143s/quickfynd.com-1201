@@ -14,6 +14,7 @@ const ProductDescription = ({ product, reviews = [], loadingReviews = false, onR
     // Use reviews and loadingReviews from props only
     const [suggestedProducts, setSuggestedProducts] = useState([])
     const allProducts = useSelector((state) => state.product.list || [])
+    const [lightboxImage, setLightboxImage] = useState(null)
 
     // Calculate rating distribution
     const ratingCounts = [0, 0, 0, 0, 0]
@@ -123,7 +124,7 @@ const ProductDescription = ({ product, reviews = [], loadingReviews = false, onR
                                         />
                                     ))}
                                 </div>
-                                <div className="text-sm text-gray-500">{reviews.length} Ratings</div>
+                                <div className="text-sm text-gray-500">{reviews.length} Review{reviews.length !== 1 ? 's' : ''}</div>
                             </div>
 
                             {/* Right: Rating Distribution Bars */}
@@ -221,6 +222,7 @@ const ProductDescription = ({ product, reviews = [], loadingReviews = false, onR
                                                                 width={80}
                                                                 height={80}
                                                                 className="rounded-lg object-cover border border-gray-200 hover:border-orange-400 transition-colors cursor-pointer"
+                                                                onClick={() => setLightboxImage(img)}
                                                             />
                                                         </div>
                                                     ))}
@@ -260,6 +262,30 @@ const ProductDescription = ({ product, reviews = [], loadingReviews = false, onR
                                 <ProductCard key={suggestedProduct._id} product={suggestedProduct} />
                             ))}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Image Lightbox Modal */}
+            {lightboxImage && (
+                <div 
+                    className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+                    onClick={() => setLightboxImage(null)}
+                >
+                    <div className="relative max-w-4xl max-h-[90vh]">
+                        <button
+                            onClick={() => setLightboxImage(null)}
+                            className="absolute -top-10 right-0 text-white hover:text-gray-300 text-2xl font-bold"
+                        >
+                            ×
+                        </button>
+                        <Image
+                            src={lightboxImage}
+                            alt="Review image full size"
+                            width={800}
+                            height={800}
+                            className="rounded-lg max-h-[85vh] w-auto object-contain"
+                        />
                     </div>
                 </div>
             )}

@@ -31,24 +31,78 @@ export async function GET(request, { params }) {
         const storeId = await authSeller(userId);
         const { customerId } = await params;
 
-        // Get customer information
-        const customer = await User.findById(customerId).select('_id name email image').lean();
+        // Check if this is a guest customer
+        const isGuest = customerId.startsWith('guest-') || customerId.startsWith('unknown-');
+        
+        let customer;
+        let orders;
 
-        if (!customer) {
-            return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+        if (isGuest) {
+            // Handle guest customer
+            const guestEmail = customerId.replace(/^(guest-|unknown-)/, '');
+            
+            // Get orders for this guest
+            orders = await Order.find({
+                storeId: storeId,
+                $or: [
+                    { guestEmail: guestEmail },
+                    { isGuest: true, guestEmail: guestEmail }
+                ]
+            })
+            .populate({
+                path: 'orderItems.productId',
+                model: 'Product'
+            })
+            .sort({ createdAt: -1 })
+            .lean();
+
+            // Build customer object from guest order data
+            if (orders.length > 0) {
+                customer = {
+                    _id: customerId,
+                    name: orders[0].guestName || orders[0].shippingAddress?.name || 'Guest Checkout',
+                    email: orders[0].guestEmail || orders[0].shippingAddress?.email || 'No email (Guest)',
+                    image: null,
+                    isGuest: true
+                };
+            } else {
+                return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+            }
+        } else {
+            // Get all orders from this customer for this store first
+            orders = await Order.find({
+                userId: customerId,
+                storeId: storeId
+            })
+            .populate({
+                path: 'orderItems.productId',
+                model: 'Product'
+            })
+            .sort({ createdAt: -1 })
+            .lean();
+
+            // Try to get customer information for registered user
+            let userDoc = null;
+            try {
+                userDoc = await User.findById(customerId).select('_id name email image').lean();
+            } catch (err) {
+                // Invalid ObjectId format
+            }
+
+            if (userDoc) {
+                customer = userDoc;
+            } else if (orders.length > 0) {
+                // User not found but has orders - construct customer from order data
+                customer = {
+                    _id: customerId,
+                    name: orders[0].guestName || orders[0].shippingAddress?.name || 'Customer',
+                    email: orders[0].guestEmail || orders[0].shippingAddress?.email || 'No email',
+                    image: null
+                };
+            } else {
+                return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+            }
         }
-
-        // Get all orders from this customer for this store
-        const orders = await Order.find({
-            userId: customerId,
-            storeId: storeId
-        })
-        .populate({
-            path: 'orderItems.productId',
-            model: 'Product'
-        })
-        .sort({ createdAt: -1 })
-        .lean();
 
         // Convert orderItems to items format
         const ordersWithItems = orders.map(order => ({
@@ -61,10 +115,15 @@ export async function GET(request, { params }) {
         }));
 
         // Get abandoned cart for this customer (if exists)
-        const abandonedCart = await AbandonedCart.findOne({
-            userId: customerId,
-            storeId: storeId
-        }).lean();
+        const abandonedCart = isGuest 
+            ? await AbandonedCart.findOne({
+                guestEmail: customer.email,
+                storeId: storeId
+            }).lean()
+            : await AbandonedCart.findOne({
+                userId: customerId,
+                storeId: storeId
+            }).lean();
 
         // Calculate statistics
         const totalSpent = ordersWithItems.reduce((sum, order) => sum + order.total, 0);

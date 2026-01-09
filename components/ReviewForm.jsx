@@ -31,11 +31,26 @@ export default function ReviewForm({ productId, onReviewAdded }) {
 
     const handleImageChange = (e) => {
         const files = Array.from(e.target.files)
-        setImages(files)
+        const remainingSlots = 5 - images.length
+        
+        if (remainingSlots <= 0) {
+            toast.error('Maximum 5 images allowed')
+            e.target.value = ''
+            return
+        }
+        
+        const filesToAdd = files.slice(0, remainingSlots)
+        if (files.length > remainingSlots) {
+            toast.error(`Only ${remainingSlots} more image${remainingSlots !== 1 ? 's' : ''} can be added (max 5 total)`)
+        }
+        
+        setImages([...images, ...filesToAdd])
         
         // Create previews
-        const previews = files.map(file => URL.createObjectURL(file))
-        setImagePreviews(previews)
+        const previews = filesToAdd.map(file => URL.createObjectURL(file))
+        setImagePreviews([...imagePreviews, ...previews])
+        
+        e.target.value = ''
     }
 
     const handleSubmit = async (e) => {
@@ -165,9 +180,10 @@ export default function ReviewForm({ productId, onReviewAdded }) {
                         multiple
                         onChange={handleImageChange}
                         className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                        disabled={images.length >= 5}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                        You can upload multiple photos to showcase your experience
+                        You can upload up to 5 photos ({images.length}/5)
                     </p>
                     
                     {/* Image Previews */}

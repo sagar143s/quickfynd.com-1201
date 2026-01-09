@@ -37,6 +37,7 @@ export async function POST(request) {
         const rating = Number(formData.get('rating'));
         const review = formData.get('review');
         const images = formData.getAll('images');
+        const videos = formData.getAll('videos');
 
         if (!productId || !rating || !review) {
             return Response.json({ error: "Missing required fields" }, { status: 400 });

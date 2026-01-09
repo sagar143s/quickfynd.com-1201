@@ -21,6 +21,7 @@ import Image from "next/image";
 const SignInModal = dynamic(() => import("@/components/SignInModal"), { ssr: false });
 const AddressModal = dynamic(() => import("@/components/AddressModal"), { ssr: false });
 const PincodeModal = dynamic(() => import("@/components/PincodeModal"), { ssr: false });
+const PrepaidUpsellModal = dynamic(() => import("@/components/PrepaidUpsellModal"), { ssr: false });
 
 export default function CheckoutPage() {
   const { user, loading: authLoading, getToken } = useAuth();
@@ -51,6 +52,11 @@ export default function CheckoutPage() {
   const keralaDistricts = indiaStatesAndDistricts.find(s => s.state === 'Kerala')?.districts || [];
   const [districts, setDistricts] = useState(keralaDistricts);
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [payingNow, setPayingNow] = useState(false);
+  const [showPrepaidModal, setShowPrepaidModal] = useState(false);
+  const [upsellOrderId, setUpsellOrderId] = useState(null);
+  const [upsellOrderTotal, setUpsellOrderTotal] = useState(0);
+  const [navigatingToSuccess, setNavigatingToSuccess] = useState(false);
   const [shippingSetting, setShippingSetting] = useState(null);
   const [shipping, setShipping] = useState(0);
   const [showSignIn, setShowSignIn] = useState(false);
@@ -190,6 +196,16 @@ export default function CheckoutPage() {
       setShipping(0);
     }
   }, [shippingSetting, cartArray, form.payment]);
+
+  // Redirect to shop when cart is empty (must be a top-level hook)
+  useEffect(() => {
+    if (!authLoading && (!cartItems || Object.keys(cartItems).length === 0) && !placingOrder && !showPrepaidModal) {
+      const timer = setTimeout(() => {
+        router.push('/shop');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [authLoading, cartItems, router, placingOrder, showPrepaidModal]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -475,9 +491,13 @@ export default function CheckoutPage() {
       }
       const data = await res.json();
       if (data._id || data.id) {
-        // Order created successfully - clear cart and redirect
+        // Order created successfully - clear cart and show prepaid upsell before redirect
+        const createdOrderId = data._id || data.id;
+        const orderTotal = data.total || total;
         dispatch(clearCart());
-        router.push(`/order-success?orderId=${data._id || data.id}`);
+        setUpsellOrderId(createdOrderId);
+        setUpsellOrderTotal(orderTotal);
+        setShowPrepaidModal(true);
       } else {
         // No order ID returned - treat as failure
         setFormError("Order creation failed. Please try again.");
@@ -494,6 +514,116 @@ export default function CheckoutPage() {
     }
   };
 
+  const handlePayNowForExistingOrder = async () => {
+    if (!upsellOrderId) return;
+    
+    // Check if Razorpay is loaded
+    if (!window.Razorpay) {
+      alert('Payment gateway is loading... Please try again in a moment.');
+      return;
+    }
+    
+    try {
+      setPayingNow(true);
+      // Fetch order to get accurate total
+      const orderRes = await fetch(`/api/orders?orderId=${upsellOrderId}`);
+      const orderData = await orderRes.json();
+      const order = orderData.order;
+      if (!order) {
+        setPayingNow(false);
+        setShowPrepaidModal(false);
+        router.push(`/order-success?orderId=${upsellOrderId}`);
+        return;
+      }
+      const discountedAmount = Math.round((order.total || 0) * 0.95);
+
+      // Create Razorpay order
+      const rpRes = await fetch('/api/razorpay/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: discountedAmount, currency: 'INR', receipt: `order_${upsellOrderId}` })
+      });
+      const rpData = await rpRes.json();
+      if (!rpRes.ok || !rpData.success || !rpData.orderId) {
+        setPayingNow(false);
+        alert('Failed to create payment. Redirecting to order page...');
+        setTimeout(() => {
+          setShowPrepaidModal(false);
+          router.push(`/order-success?orderId=${upsellOrderId}`);
+        }, 1500);
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        order_id: rpData.orderId,
+        amount: Math.round(discountedAmount * 100),
+        currency: 'INR',
+        name: 'QuickFynd',
+        description: 'Prepaid Payment (5% OFF)',
+        image: '/logo.png',
+        handler: async function (response) {
+          try {
+            const verifyRes = await fetch('/api/razorpay/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                paymentPayload: { existingOrderId: upsellOrderId }
+              })
+            });
+            const verifyData = await verifyRes.json();
+            setPayingNow(false);
+            setNavigatingToSuccess(true);
+            setTimeout(() => {
+              setShowPrepaidModal(false);
+              router.push(`/order-success?orderId=${upsellOrderId}`);
+            }, 300);
+          } catch (err) {
+            setPayingNow(false);
+            setNavigatingToSuccess(true);
+            setTimeout(() => {
+              setShowPrepaidModal(false);
+              router.push(`/order-success?orderId=${upsellOrderId}`);
+            }, 300);
+          }
+        },
+        prefill: {
+          name: user?.displayName || form.name || '',
+          email: user?.email || form.email || '',
+          contact: form.phone || '',
+        },
+        theme: { color: '#16a34a' },
+        modal: {
+          ondismiss: function () {
+            // User cancelled payment - continue with COD
+            setPayingNow(false);
+            setNavigatingToSuccess(true);
+            setTimeout(() => {
+              setShowPrepaidModal(false);
+              router.push(`/order-success?orderId=${upsellOrderId}`);
+            }, 300);
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+      setPayingNow(false); // Enable Pay Now button while Razorpay is open
+      rzp.open();
+    } catch (err) {
+      console.error('Payment error:', err);
+      setPayingNow(false);
+      alert('Payment failed. Redirecting to order page...');
+      setTimeout(() => {
+        setNavigatingToSuccess(true);
+        setShowPrepaidModal(false);
+        router.push(`/order-success?orderId=${upsellOrderId}`);
+      }, 1500);
+    }
+  };
+
   if (authLoading) return null;
   
   // Show loading state while products are being fetched
@@ -506,14 +636,37 @@ export default function CheckoutPage() {
   }
   
   if (!cartItems || Object.keys(cartItems).length === 0) {
-    // Auto-redirect to shop after 3 seconds if cart is empty
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        router.push('/shop');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }, [router]);
-
+    // If we just placed a COD order, show the prepaid upsell modal even though cart is empty
+    if (showPrepaidModal || navigatingToSuccess) {
+      return (
+        <>
+          <PrepaidUpsellModal 
+            open={showPrepaidModal || navigatingToSuccess}
+            orderTotal={upsellOrderTotal}
+            discountAmount={upsellOrderTotal * 0.05}
+            onClose={() => { 
+              setNavigatingToSuccess(true); 
+              setTimeout(() => {
+                router.push(`/order-success?orderId=${upsellOrderId}`); 
+              }, 100);
+            }}
+            onNoThanks={() => { 
+              setNavigatingToSuccess(true); 
+              setTimeout(() => {
+                router.push(`/order-success?orderId=${upsellOrderId}`); 
+              }, 100);
+            }}
+            onPayNow={handlePayNowForExistingOrder}
+            loading={payingNow}
+          />
+          <Script 
+            src="https://checkout.razorpay.com/v1/checkout.js" 
+            strategy="afterInteractive"
+            onLoad={() => setRazorpayLoaded(true)}
+          />
+        </>
+      );
+    }
     return (
       <div className="py-20 text-center">
         <div className="text-xl font-bold text-gray-900 mb-2">Your cart is empty</div>
@@ -898,10 +1051,26 @@ export default function CheckoutPage() {
           <button
             type="submit"
             form="checkout-form"
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded text-lg transition"
+            className={`relative w-full text-white font-bold py-3 rounded text-lg transition shadow-md hover:shadow-lg ${placingOrder ? 'bg-red-600 animate-pulse cursor-not-allowed opacity-95' : 'bg-red-600 hover:bg-red-700'}`}
             disabled={placingOrder}
+            aria-busy={placingOrder}
           >
-            {placingOrder ? "Placing order..." : "Place order"}
+            {placingOrder ? (
+              <span className="inline-flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                Placing order...
+              </span>
+            ) : (
+              'Place order'
+            )}
+            {placingOrder && (
+              <span className="absolute left-0 top-0 h-full w-full overflow-hidden rounded opacity-20">
+                <span className="block h-full w-1/3 bg-white animate-[shimmer_1.2s_ease_infinite]" />
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -928,6 +1097,20 @@ export default function CheckoutPage() {
         open={showPincodeModal} 
         onClose={() => setShowPincodeModal(false)} 
         onPincodeSubmit={handlePincodeSubmit}
+      />
+
+      <PrepaidUpsellModal 
+        open={showPrepaidModal}
+        onClose={() => {
+          setShowPrepaidModal(false);
+          setTimeout(() => router.push(`/order-success?orderId=${upsellOrderId}`), 0);
+        }}
+        onNoThanks={() => {
+          setShowPrepaidModal(false);
+          setTimeout(() => router.push(`/order-success?orderId=${upsellOrderId}`), 0);
+        }}
+        onPayNow={handlePayNowForExistingOrder}
+        loading={payingNow}
       />
       
       {/* Razorpay Script */}

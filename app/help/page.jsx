@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
+import axios from 'axios'
+import toast from 'react-hot-toast'
+import { useRouter } from 'next/navigation'
 
 import Loading from '@/components/Loading'
 import Link from 'next/link'
@@ -10,7 +13,15 @@ import DashboardSidebar from '@/components/DashboardSidebar'
 import { Mail, MessageCircle, Phone, HelpCircle } from 'lucide-react'
 
 export default function HelpPage() {
+  const router = useRouter()
   const [user, setUser] = useState(undefined)
+  const [submitting, setSubmitting] = useState(false)
+  const [formData, setFormData] = useState({
+    subject: '',
+    category: 'Order Issue',
+    description: '',
+    priority: 'normal'
+  })
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u ?? null))
@@ -47,7 +58,7 @@ export default function HelpPage() {
               <h2 className="text-lg font-semibold text-slate-800 mb-2">Email Support</h2>
               <p className="text-slate-600 text-sm mb-4">Get help via email within 24 hours.</p>
               <a href="mailto:support@example.com" className="text-blue-600 hover:underline">
-                support@example.com
+                support@quickfynd.com
               </a>
             </div>
 
@@ -55,7 +66,16 @@ export default function HelpPage() {
               <MessageCircle className="text-green-600 mb-3" size={32} />
               <h2 className="text-lg font-semibold text-slate-800 mb-2">Live Chat</h2>
               <p className="text-slate-600 text-sm mb-4">Chat with our support team.</p>
-              <button className="text-blue-600 hover:underline">Start Chat</button>
+              <button 
+                onClick={() => {
+                  if (window.Tawk_API) {
+                    window.Tawk_API.maximize();
+                  }
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              >
+                Start Chat
+              </button>
             </div>
 
             <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 hover:shadow-md transition">
@@ -63,7 +83,7 @@ export default function HelpPage() {
               <h2 className="text-lg font-semibold text-slate-800 mb-2">Phone Support</h2>
               <p className="text-slate-600 text-sm mb-4">Call us Mon-Fri 9AM-6PM.</p>
               <a href="tel:+1234567890" className="text-blue-600 hover:underline">
-                +1 (234) 567-890
+                +91 7592875212
               </a>
             </div>
 
@@ -76,19 +96,53 @@ export default function HelpPage() {
           </div>
 
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Submit a Ticket</h2>
-            <form className="space-y-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-slate-800">Submit a Ticket</h2>
+              <Link href="/dashboard/tickets" className="text-sm text-blue-600 hover:underline">
+                View My Tickets
+              </Link>
+            </div>
+            <form className="space-y-4" onSubmit={async (e) => {
+              e.preventDefault()
+              if (!formData.subject || !formData.description) {
+                toast.error('Please fill in all required fields')
+                return
+              }
+              try {
+                setSubmitting(true)
+                const token = await auth.currentUser.getIdToken(true)
+                await axios.post('/api/tickets', formData, {
+                  headers: { Authorization: `Bearer ${token}` }
+                })
+                toast.success('Ticket submitted successfully!')
+                setFormData({ subject: '', category: 'Order Issue', description: '', priority: 'normal' })
+                router.push('/dashboard/tickets')
+              } catch (error) {
+                console.error('Failed to submit ticket:', error)
+                toast.error(error?.response?.data?.error || 'Failed to submit ticket')
+              } finally {
+                setSubmitting(false)
+              }
+            }}>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Subject *</label>
                 <input 
                   type="text" 
+                  value={formData.subject}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
                   placeholder="Brief description of your issue"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                <select className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200">
+                <label className="block text-sm font-medium text-slate-700 mb-1">Category *</label>
+                <select 
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  required
+                >
                   <option>Order Issue</option>
                   <option>Product Question</option>
                   <option>Payment Issue</option>
@@ -97,18 +151,36 @@ export default function HelpPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Priority *</label>
+                <select 
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  required
+                >
+                  <option value="low">Low - General inquiry</option>
+                  <option value="normal">Normal - Standard support</option>
+                  <option value="high">High - Important issue</option>
+                  <option value="urgent">Urgent - Critical problem</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Description *</label>
                 <textarea 
                   rows={5}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
                   placeholder="Provide details about your issue..."
+                  required
                 />
               </div>
               <button 
                 type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                disabled={submitting}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                Submit Ticket
+                {submitting ? 'Submitting...' : 'Submit Ticket'}
               </button>
             </form>
           </div>

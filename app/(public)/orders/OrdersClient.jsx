@@ -7,44 +7,62 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
-
-// TODO: Integrate Firebase Auth for user and token if needed
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function OrdersClient() {
-    // TODO: Replace with your Firebase Auth state
-    // Example: const user = firebase.auth().currentUser;
-    // Example: const isLoaded = !!user;
-    // Example: const getToken = async () => user && user.getIdToken();
-    const getToken = async () => null;
-    const user = null;
-    const isLoaded = true;
+    const [user, setUser] = useState(undefined);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true)
 
     const router = useRouter()
 
     useEffect(() => {
+        const unsub = onAuthStateChanged(auth, (u) => setUser(u ?? null));
+        return () => unsub();
+    }, []);
+
+    useEffect(() => {
        const fetchOrders = async () => {
         try {
-            const token = await getToken()
-            const { data } = await axios.get('/api/orders', { headers: { Authorization: `Bearer ${token}` } })
-            setOrders(data.orders)
-            setLoading(false)
+            const token = await auth.currentUser.getIdToken(true);
+            const { data } = await axios.get('/api/orders', { headers: { Authorization: `Bearer ${token}` } });
+            const list = Array.isArray(data?.orders) ? data.orders : (Array.isArray(data) ? data : []);
+            setOrders(list);
+            setLoading(false);
         } catch (error) {
-            toast.error(error?.response?.data?.error || error.message)
+            console.error('[ORDERS] Fetch error:', error?.response?.data || error.message);
+            toast.error(error?.response?.data?.error || 'Failed to load orders');
+            setLoading(false);
         }
        }
-       if(isLoaded){
-        if(user){
-            fetchOrders()
+       if(user === undefined) return;
+       if(user){
+            fetchOrders();
         }else{
-            router.push('/')
+            setLoading(false);
         }
-       }
-    }, [isLoaded, user, getToken, router]);
+    }, [user]);
 
-    if(!isLoaded || loading){
+    if(user === undefined || loading){
         return <Loading />
+    }
+
+    if(user === null){
+        return (
+            <div className="min-h-[70vh] flex items-center justify-center">
+                <div className="text-center">
+                    <h1 className="text-2xl font-semibold text-slate-800 mb-4">Please Sign In</h1>
+                    <p className="text-slate-600 mb-6">You need to sign in to view your orders.</p>
+                    <button
+                        onClick={() => router.push('/')}
+                        className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                    >
+                        Go to Home
+                    </button>
+                </div>
+            </div>
+        )
     }
 
     return (

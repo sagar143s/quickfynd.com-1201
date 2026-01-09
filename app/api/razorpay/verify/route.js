@@ -40,7 +40,35 @@ export async function POST(request) {
 
     // Verify signature
     if (generated_signature === razorpay_signature) {
-      // Payment verified - now create order via the main orders API
+      // If paying for an existing COD order (upsell), update that order instead of creating a new one
+      if (paymentPayload && paymentPayload.existingOrderId) {
+        try {
+          const existingOrder = await Order.findById(paymentPayload.existingOrderId);
+          if (!existingOrder) {
+            return NextResponse.json({ success: false, message: 'Existing order not found' }, { status: 404 });
+          }
+
+          // Apply 5% prepaid discount and mark as paid
+          const discountedTotal = Number((existingOrder.total * 0.95).toFixed(2));
+          existingOrder.total = discountedTotal;
+          existingOrder.isPaid = true;
+          existingOrder.paymentMethod = 'CARD';
+          existingOrder.paymentStatus = 'paid';
+          existingOrder.isCouponUsed = true;
+          existingOrder.coupon = { code: 'PREPAID5', discountType: 'percentage', discount: 5 };
+          await existingOrder.save();
+
+          return NextResponse.json({ 
+            success: true,
+            orderId: existingOrder._id.toString(),
+            message: 'Existing order updated to prepaid with discount' 
+          });
+        } catch (e) {
+          return NextResponse.json({ success: false, message: e.message || 'Failed to update existing order' }, { status: 500 });
+        }
+      }
+
+      // Payment verified - create a fresh order via the main Orders API (standard card checkout)
       console.log('[Verify] Payment verified successfully:', razorpay_payment_id);
       console.log('[Verify] Creating order in database...');
       

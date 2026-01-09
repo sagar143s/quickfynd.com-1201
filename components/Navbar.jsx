@@ -540,7 +540,7 @@ const Navbar = () => {
                       Profile
                     </Link>
                     <Link
-                      href="/orders"
+                      href="/dashboard/orders"
                       className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition text-sm"
                       onClick={() => setUserDropdownOpen(false)}
                     >
@@ -847,7 +847,7 @@ const Navbar = () => {
                   )}
                 </Link>
                 <Link 
-                  href="/orders" 
+                  href="/dashboard/orders" 
                   className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 rounded-lg transition text-gray-700 font-medium"
                   onClick={() => setMobileMenuOpen(false)}
                 >

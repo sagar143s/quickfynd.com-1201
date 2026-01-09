@@ -100,12 +100,13 @@ export default function DashboardProfilePage() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
                 {/* Edit-only section */}
-                <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+                <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col">
                   <h2 className="text-lg font-semibold text-slate-800 mb-3">Edit Profile</h2>
-                  <p className="text-slate-600 mb-4">Only editable fields appear below.</p>
-                  {isEditing ? (
+                  <p className="text-slate-600 mb-4 text-sm">Only editable fields appear below.</p>
+                  <p className="text-slate-600 mb-4 text-sm">Click "Edit" above to modify your name or photo.</p>
+                  {isEditing && (
                     <form
-                      className="flex flex-col gap-3"
+                      className="flex flex-col gap-3 flex-1"
                       onSubmit={async (e) => {
                         e.preventDefault()
                         const formData = new FormData(e.currentTarget)
@@ -177,43 +178,45 @@ export default function DashboardProfilePage() {
                       {uploading && <p className="text-sm text-blue-600">Uploading...</p>}
                       <input type="hidden" name="photoURL" value={user.photoURL || ''} />
                       <div className="flex gap-3 mt-3">
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg">Save</button>
-                        <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg">Cancel</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save</button>
+                        <button type="button" onClick={() => setIsEditing(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300">Cancel</button>
                       </div>
                     </form>
-                  ) : (
-                    <div className="text-sm text-slate-600">Click "Edit" above to modify your name or photo.</div>
                   )}
                 </div>
 
                 {/* Saved addresses */}
-                <div id="addresses" className="bg-white border border-slate-200 rounded-xl shadow-sm p-6">
-                  <div className="flex items-center justify-between">
+                <div id="addresses" className="bg-white border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-slate-800">Saved Addresses</h2>
-                    <button onClick={() => { setAddrToEdit(null); setShowAddrModal(true) }} className="text-sm text-blue-600 hover:underline">Add New</button>
+                    <button onClick={() => { setAddrToEdit(null); setShowAddrModal(true) }} className="text-sm text-blue-600 hover:underline font-medium">Add New</button>
                   </div>
                   {addrLoading ? (
-                    <div className="mt-4"><Loading /></div>
+                    <div className="flex-1 flex items-center justify-center py-12">
+                      <Loading />
+                    </div>
                   ) : addresses.length === 0 ? (
-                    <p className="text-slate-600 mt-3">No saved addresses yet.</p>
+                    <div className="flex-1 flex items-center justify-center py-12">
+                      <p className="text-slate-500 text-center">No saved addresses yet.<br/><span className="text-sm">Click "Add New" to create one.</span></p>
+                    </div>
                   ) : (
-                    <ul className="mt-4 space-y-3">
+                    <ul className="flex-1 space-y-3 overflow-y-auto max-h-96">
                       {addresses.map((a) => (
-                        <li key={a.id || a._id} className="border border-slate-200 rounded-lg p-3 text-sm text-slate-700">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <div className="font-medium text-slate-800">{a.name || a.fullName || 'Address'}</div>
-                              <div>{[a.street, a.city, a.state, a.zip]?.filter(Boolean).join(', ')}</div>
-                              <div className="text-slate-500">{a.country || 'India'}</div>
-                              {a.phone && <div className="text-slate-500">Phone: {a.phone}</div>}
+                        <li key={a.id || a._id} className="border border-slate-200 rounded-lg p-4 text-sm text-slate-700 hover:border-slate-300 transition">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="font-semibold text-slate-900 mb-1">{a.name || a.fullName || 'Address'}</div>
+                              <div className="text-slate-600">{[a.street, a.city, a.state, a.zip]?.filter(Boolean).join(', ')}</div>
+                              <div className="text-slate-500 mt-1">{a.country || 'India'}</div>
+                              {a.phone && <div className="text-slate-500 mt-1">Phone: {a.phone}</div>}
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
                               <button
-                                className="px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                className="px-3 py-1.5 text-xs rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 whitespace-nowrap"
                                 onClick={() => { setAddrToEdit(a); setShowAddrModal(true) }}
                               >Edit</button>
                               <button
-                                className="px-3 py-1.5 rounded-md bg-red-600 text-white hover:bg-red-700"
+                                className="px-3 py-1.5 text-xs rounded-md bg-red-600 text-white hover:bg-red-700 whitespace-nowrap"
                                 onClick={async () => {
                                   if (!confirm('Delete this address?')) return
                                   try {

@@ -109,7 +109,9 @@ import { useSelector } from "react-redux"
                 </h1>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mx-auto mb-32">
                     {filteredProducts.length > 0 ? (
-                        filteredProducts.map((product) => <ProductCard key={product.id} product={product} />)
+                        filteredProducts.map((product, idx) => (
+                            <ProductCard key={product._id || product.id || idx} product={product} />
+                        ))
                     ) : (
                         <div className="col-span-full text-center py-12">
                             <p className="text-gray-500 text-lg">No products found</p>

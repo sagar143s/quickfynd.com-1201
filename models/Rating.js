@@ -8,6 +8,7 @@ const RatingSchema = new mongoose.Schema({
   comment: String,
   review: String,
   images: [String],
+  videos: [String],
   approved: { type: Boolean, default: false },
   isApproved: { type: Boolean, default: false },
   customerName: String, // For manually added reviews

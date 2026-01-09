@@ -105,7 +105,7 @@ export default function SmoothBrands({ data = brands }) {
               <div
                 key={brand.name}
                 className="brand-card snap-start cursor-pointer flex items-center justify-center min-h-[140px] sm:min-h-[180px] h-[140px] sm:h-[220px] min-w-[calc(100%/4)] sm:min-w-[28.5%] lg:min-w-[15.5%] max-w-[220px] bg-white rounded-xl shadow-sm lg:h-[270px] lg:max-w-[260px]"
-                onDoubleClick={() => router.push(brand.path)}
+                onClick={() => router.push(brand.path)}
                 style={{ paddingTop: 0, paddingBottom: 0 }}
               >
                 <Image

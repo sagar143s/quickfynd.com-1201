@@ -24,8 +24,11 @@ export default function StoreReviews() {
         customerEmail: '',
         rating: 5,
         review: '',
-        images: []
+        images: [],
+        videos: []
     })
+    const [imagePreviews, setImagePreviews] = useState([])
+    const [videoPreviews, setVideoPreviews] = useState([])
 
     const fetchReviews = async () => {
         try {
@@ -70,13 +73,19 @@ export default function StoreReviews() {
                 form.append('images', img)
             })
 
+            formData.videos.forEach((vid) => {
+                form.append('videos', vid)
+            })
+
             await axios.post('/api/store/reviews', form, {
                 headers: { Authorization: `Bearer ${token}` }
             })
 
             toast.success('Review added successfully')
             setShowAddModal(false)
-            setFormData({ customerName: '', customerEmail: '', rating: 5, review: '', images: [] })
+            setFormData({ customerName: '', customerEmail: '', rating: 5, review: '', images: [], videos: [] })
+            setImagePreviews([])
+            setVideoPreviews([])
             setSelectedProduct(null)
             fetchReviews()
         } catch (error) {
@@ -102,13 +111,6 @@ export default function StoreReviews() {
                 {products.map((product) => (
                     <div key={product._id || product.id} className="border rounded-lg p-4 bg-white shadow">
                         <div className="flex items-center gap-4 mb-4">
-                            <Image
-                                src={product.images[0]}
-                                alt={product.name}
-                                width={60}
-                                height={60}
-                                className="rounded object-cover"
-                            />
                             <div className="flex-1">
                                 <h3 className="font-semibold text-lg">{product.name}</h3>
                                 <p className="text-sm text-slate-600">
@@ -279,10 +281,94 @@ export default function StoreReviews() {
                                     type="file"
                                     accept="image/*"
                                     multiple
-                                    onChange={(e) => setFormData({ ...formData, images: Array.from(e.target.files) })}
+                                    onChange={(e) => {
+                                        const files = Array.from(e.target.files)
+                                        const remainingSlots = 5 - formData.images.length
+                                        if (remainingSlots <= 0) {
+                                            toast.error('Maximum 5 images allowed')
+                                            e.target.value = ''
+                                            return
+                                        }
+                                        const filesToAdd = files.slice(0, remainingSlots)
+                                        if (files.length > remainingSlots) {
+                                            toast.error(`Only ${remainingSlots} more image${remainingSlots !== 1 ? 's' : ''} can be added (max 5 total)`)
+                                        }
+                                        setFormData({ ...formData, images: [...formData.images, ...filesToAdd] })
+                                        const previews = filesToAdd.map(f => URL.createObjectURL(f))
+                                        setImagePreviews([...imagePreviews, ...previews])
+                                        e.target.value = ''
+                                    }}
+                                    className="w-full border rounded px-3 py-2"
+                                    disabled={formData.images.length >= 5}
+                                />
+                                <p className="text-xs text-slate-500 mt-1">You can upload up to 5 images ({formData.images.length}/5)</p>
+                                {imagePreviews.length > 0 && (
+                                    <div className="flex gap-3 mt-3 flex-wrap">
+                                        {imagePreviews.map((preview, idx) => (
+                                            <div key={idx} className="relative">
+                                                <Image
+                                                    src={preview}
+                                                    alt={`Preview ${idx + 1}`}
+                                                    width={100}
+                                                    height={100}
+                                                    className="rounded-lg object-cover border"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setFormData({ ...formData, images: formData.images.filter((_, i) => i !== idx) })
+                                                        setImagePreviews(imagePreviews.filter((_, i) => i !== idx))
+                                                    }}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Videos (Optional)</label>
+                                <input
+                                    type="file"
+                                    accept="video/*"
+                                    multiple
+                                    onChange={(e) => {
+                                        const files = Array.from(e.target.files)
+                                        setFormData({ ...formData, videos: [...formData.videos, ...files] })
+                                        const previews = files.map(f => URL.createObjectURL(f))
+                                        setVideoPreviews([...videoPreviews, ...previews])
+                                    }}
                                     className="w-full border rounded px-3 py-2"
                                 />
-                                <p className="text-xs text-slate-500 mt-1">You can upload multiple images</p>
+                                <p className="text-xs text-slate-500 mt-1">Upload video reviews (MP4, WebM, max 50MB each)</p>
+                                {videoPreviews.length > 0 && (
+                                    <div className="flex gap-3 mt-3 flex-wrap">
+                                        {videoPreviews.map((preview, idx) => (
+                                            <div key={idx} className="relative">
+                                                <video
+                                                    src={preview}
+                                                    width={150}
+                                                    height={100}
+                                                    controls
+                                                    className="rounded-lg object-cover border"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setFormData({ ...formData, videos: formData.videos.filter((_, i) => i !== idx) })
+                                                        setVideoPreviews(videoPreviews.filter((_, i) => i !== idx))
+                                                    }}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -298,7 +384,9 @@ export default function StoreReviews() {
                                 onClick={() => {
                                     setShowAddModal(false)
                                     setSelectedProduct(null)
-                                    setFormData({ customerName: '', customerEmail: '', rating: 5, review: '', images: [] })
+                                    setFormData({ customerName: '', customerEmail: '', rating: 5, review: '', images: [], videos: [] })
+                                    setImagePreviews([])
+                                    setVideoPreviews([])
                                 }}
                                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
                             >

@@ -50,15 +50,29 @@ export async function GET(request) {
             let customerId, name, email, image, isGuest = false;
             if (order.isGuest) {
                 customerId = `guest-${order.guestEmail || order._id}`;
-                name = order.guestName || 'Guest';
-                email = order.guestEmail || 'No email';
+                name = order.guestName || order.shippingAddress?.name || 'Guest Customer';
+                email = order.guestEmail || order.shippingAddress?.email || 'No email';
                 image = null;
                 isGuest = true;
+            } else if (order.userId && typeof order.userId === 'object' && order.userId._id) {
+                // User is populated and valid
+                customerId = order.userId._id.toString();
+                name = order.userId.name || order.shippingAddress?.name || 'Customer';
+                email = order.userId.email || order.shippingAddress?.email || 'No email';
+                image = order.userId.image || null;
+            } else if (order.userId) {
+                // User ID exists but not populated - try to get info from order fields
+                customerId = order.userId.toString();
+                name = order.guestName || order.shippingAddress?.name || 'Customer';
+                email = order.guestEmail || order.shippingAddress?.email || 'No email';
+                image = null;
             } else {
-                customerId = order.userId;
-                name = order.userId?.name || 'Unknown Customer';
-                email = order.userId?.email || 'No email';
-                image = order.userId?.image || null;
+                // No user ID at all
+                customerId = `unknown-${order._id}`;
+                name = order.guestName || order.shippingAddress?.name || 'Guest Customer';
+                email = order.guestEmail || order.shippingAddress?.email || 'No email';
+                image = null;
+                isGuest = true;
             }
 
             if (!customerMap.has(customerId)) {

@@ -61,67 +61,61 @@ export default function BrowseHistoryPage() {
 
   if (user === null) {
     return (
-      <>
-        {/* <Navbar /> removed, now global via ClientLayout */}
-        <div className="max-w-4xl mx-auto px-4 py-10">
+      <div className="max-w-7xl mx-auto px-4 py-10">
+        <div className="max-w-md mx-auto text-center">
           <h1 className="text-2xl font-semibold text-slate-800 mb-3">Browse History</h1>
           <p className="text-slate-600 mb-6">Please sign in to view your browse history.</p>
-          <Link href="/" className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg">Go to Home</Link>
+          <Link href="/" className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Go to Home</Link>
         </div>
-        {/* <Footer /> removed, now global via ClientLayout */}
-      </>
+      </div>
     )
   }
 
   return (
-    <>
-      {/* <Navbar /> removed, now global via ClientLayout */}
-      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-6">
-        <DashboardSidebar />
-        <main className="md:col-span-3">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-semibold text-slate-800">Browse History</h1>
-            {history.length > 0 && (
-              <button
-                onClick={handleClearHistory}
-                disabled={clearing}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {clearing ? 'Clearing...' : 'Clear History'}
-              </button>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="text-center py-16">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-r-transparent"></div>
-              <p className="mt-4 text-gray-600">Loading your history...</p>
-            </div>
-          ) : history.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-8 text-center">
-              <div className="text-6xl mb-4">👀</div>
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">No Browse History Yet</h2>
-              <p className="text-gray-600 mb-4">Your recently viewed products will appear here.</p>
-              <Link href="/" className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                Start Shopping
-              </Link>
-            </div>
-          ) : (
-            <>
-              <p className="text-sm text-gray-600 mb-4">
-                Showing {history.length} recently viewed {history.length === 1 ? 'product' : 'products'}
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {history.map((item) => (
-                  <ProductCard key={item._id} product={item.product} />
-                ))}
-              </div>
-            </>
+    <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-4 gap-6">
+      <DashboardSidebar />
+      <main className="md:col-span-3">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold text-slate-800">Browse History</h1>
+          {history.length > 0 && (
+            <button
+              onClick={handleClearHistory}
+              disabled={clearing}
+              className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {clearing ? 'Clearing...' : 'Clear History'}
+            </button>
           )}
-        </main>
-      </div>
-      {/* <Footer /> removed, now global via ClientLayout */}
-    </>
+        </div>
+
+        {loading ? (
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-12 text-center">
+            <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+            <p className="mt-4 text-gray-600">Loading your history...</p>
+          </div>
+        ) : history.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm p-12 text-center">
+            <div className="text-6xl mb-4">👀</div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">No Browse History Yet</h2>
+            <p className="text-gray-600 mb-6">Your recently viewed products will appear here.</p>
+            <Link href="/shop" className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+              Start Shopping
+            </Link>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-gray-600 mb-4">
+              Showing {history.length} recently viewed {history.length === 1 ? 'product' : 'products'}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {history.map((item) => (
+                <ProductCard key={item._id} product={item.product} />
+              ))}
+            </div>
+          </>
+        )}
+      </main>
+    </div>
   )
 }
 

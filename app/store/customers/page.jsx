@@ -52,7 +52,7 @@ export default function CustomersPage() {
 
     const handleCustomerClick = (customer) => {
         setSelectedCustomer(customer)
-        fetchCustomerDetails(customer.id)
+        fetchCustomerDetails(customer._id || customer.id)
     }
 
     const closeDetails = () => {
@@ -113,7 +113,7 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                     {filteredCustomers.map((customer) => (
                         <div
-                            key={customer.id}
+                            key={customer._id || customer.id}
                             onClick={() => handleCustomerClick(customer)}
                             className="group bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer"
                         >
@@ -161,6 +161,34 @@ export default function CustomersPage() {
                                     <p className="text-xl font-bold text-green-600">{currency}{Math.round(customer.totalSpent)}</p>
                                 </div>
                             </div>
+
+                            {/* Recent Orders Preview */}
+                            {customer.orders && customer.orders.length > 0 && (
+                                <div className="mb-3 p-3 bg-slate-50 rounded-lg">
+                                    <p className="text-xs font-semibold text-slate-700 mb-2">Recent Order</p>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs text-slate-600 truncate">
+                                                Order #{(customer.orders[0].id || customer.orders[0]._id || '').toString().slice(-8).toUpperCase()}
+                                            </p>
+                                            <p className="text-xs text-slate-500 mt-0.5">
+                                                {new Date(customer.orders[0].createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-slate-900">{currency}{Math.round(customer.orders[0].total)}</p>
+                                            <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 ${
+                                                customer.orders[0].status === 'DELIVERED' ? 'bg-green-100 text-green-700' :
+                                                customer.orders[0].status === 'SHIPPED' ? 'bg-blue-100 text-blue-700' :
+                                                customer.orders[0].status === 'ORDER_PLACED' ? 'bg-yellow-100 text-yellow-700' :
+                                                'bg-slate-100 text-slate-700'
+                                            }`}>
+                                                {customer.orders[0].status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Footer */}
                             <div className="pt-3 border-t border-slate-100">
@@ -297,14 +325,14 @@ export default function CustomersPage() {
                                             <div className="space-y-4">
                                                 {customerDetails.orders.map((order) => (
                                                     <div
-                                                        key={order.id}
+                                                        key={order._id || order.id}
                                                         className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md transition-all"
                                                     >
                                                         <div className="flex justify-between items-start mb-4">
                                                             <div>
                                                                 <div className="flex items-center gap-2 mb-2">
                                                                     <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                                                                    <p className="font-semibold text-slate-900">Order #{order.id.slice(0, 8).toUpperCase()}</p>
+                                                                    <p className="font-semibold text-slate-900">Order #{(order._id || order.id || '').toString().slice(-8).toUpperCase()}</p>
                                                                 </div>
                                                                 <p className="text-sm text-slate-500 flex items-center gap-1">
                                                                     <Calendar size={14} />

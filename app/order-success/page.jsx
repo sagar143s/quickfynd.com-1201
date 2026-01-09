@@ -144,17 +144,23 @@ function OrderSuccessContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((item, idx) => (
-                    <tr key={typeof item.productId === 'string' || typeof item.productId === 'number' ? item.productId : idx} className='border-b'>
-                      <td className='py-2 flex items-center gap-3'>
-                        {item.product?.images?.[0] && (
-                          <img src={item.product.images[0]} alt={item.product.name} className='w-12 h-12 rounded object-cover border' />
-                        )}
-                        <span>{item.product?.name}</span>
-                      </td>
-                      <td className='py-2 text-right'>{currency} {(item.price * item.quantity).toLocaleString()}</td>
-                    </tr>
-                  ))}
+                  {products.map((item, idx) => {
+                    const p = typeof item.productId === 'object' ? item.productId : null;
+                    const key = (p && p._id) || (typeof item.productId === 'string' ? item.productId : idx);
+                    const name = p?.name || item.name || 'Product';
+                    const image = Array.isArray(p?.images) && p.images[0] ? p.images[0] : null;
+                    return (
+                      <tr key={key} className='border-b'>
+                        <td className='py-2 flex items-center gap-3'>
+                          {image && (
+                            <img src={image} alt={name} className='w-12 h-12 rounded object-cover border' />
+                          )}
+                          <span className='truncate max-w-[240px]'>{name} {item.quantity > 1 ? `× ${item.quantity}` : ''}</span>
+                        </td>
+                        <td className='py-2 text-right'>{currency} {(Number(item.price) * Number(item.quantity)).toLocaleString()}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               <div className='grid grid-cols-2 gap-2 text-sm mb-2'>
@@ -168,12 +174,14 @@ function OrderSuccessContent() {
                 <div className='font-semibold text-right'>{currency} {total.toLocaleString()}</div>
               </div>
             </div>
-            <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-8 text-center'>
-              <div className='text-yellow-800 font-semibold mb-2'>
-                Please sign in to view your order history and track details.<br />
-                Guests can track their order using the order ID only.
+            {!user && (
+              <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-8 text-center'>
+                <div className='text-yellow-800 font-semibold mb-2'>
+                  Please sign in to view your order history and track details.<br />
+                  Guests can track their order using the order ID only.
+                </div>
               </div>
-            </div>
+            )}
             <div className='text-center mt-4'>
               <button className='bg-orange-500 text-white px-6 py-2 rounded-lg font-bold' onClick={() => router.push('/')}>Continue Shopping</button>
             </div>

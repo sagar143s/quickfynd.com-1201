@@ -60,7 +60,7 @@ export async function POST(request) {
     }
 
     const idToken = authHeader.split('Bearer ')[1];
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const decodedToken = await getAuth().verifyIdToken(idToken);
     const userId = decodedToken.uid;
 
     const { productId } = await request.json();
@@ -99,7 +99,7 @@ export async function DELETE(request) {
     }
 
     const idToken = authHeader.split('Bearer ')[1];
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const decodedToken = await getAuth().verifyIdToken(idToken);
     const userId = decodedToken.uid;
 
     await BrowseHistory.deleteMany({ userId });
