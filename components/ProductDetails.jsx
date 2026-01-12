@@ -223,7 +223,7 @@ const ProductDetails = ({ product, reviews = [] }) => {
   const handleOrderNow = () => {
     // Add to cart for both guests and signed-in users
     for (let i = 0; i < quantity; i++) {
-      dispatch(addToCart({ productId: product._id }));
+      dispatch(addToCart({ productId: product._id, price: effPrice }));
     }
     // Go directly to cart (guests can checkout there)
     router.push('/cart');
@@ -232,7 +232,7 @@ const ProductDetails = ({ product, reviews = [] }) => {
   const handleAddToCart = async () => {
     // Add to cart for both guests and signed-in users
     for (let i = 0; i < quantity; i++) {
-      dispatch(addToCart({ productId: product._id }));
+      dispatch(addToCart({ productId: product._id, price: effPrice }));
     }
     
     // Upload to server if signed in

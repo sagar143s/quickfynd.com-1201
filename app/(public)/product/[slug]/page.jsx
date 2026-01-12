@@ -22,13 +22,15 @@ export default function ProductBySlug() {
     const fetchProduct = async () => {
         setLoading(true);
         let found = products.find((product) => product.slug === slug);
-        if (!found) {
-            // Fetch from backend if not in Redux
+        // If the Redux product is missing variants, refetch from backend to get full data
+        const needsFresh = !found || !Array.isArray(found.variants) || found.variants.length === 0;
+        if (needsFresh) {
             try {
                 const { data } = await axios.get(`/api/products/by-slug?slug=${encodeURIComponent(slug)}`);
-                found = data.product || null;
+                found = data.product || found || null;
             } catch {
-                found = null;
+                // keep whatever we had in Redux if API fails
+                found = found || null;
             }
         }
         setProduct(found);

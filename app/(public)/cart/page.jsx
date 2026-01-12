@@ -42,12 +42,16 @@ export default function Cart() {
         
         for (const [key, value] of Object.entries(cartItems)) {       
             const product = products.find(product => String(product._id) === String(key));
-            if (product) {
+            const qty = typeof value === 'number' ? value : value?.quantity || 0;
+            const priceOverride = typeof value === 'number' ? undefined : value?.price;
+            if (product && qty > 0) {
+                const unitPrice = priceOverride ?? product.price ?? 0;
                 cartArray.push({
                     ...product,
-                    quantity: value,
+                    quantity: qty,
+                    _cartPrice: unitPrice,
                 });
-                setTotalPrice(prev => prev + product.price * value);  
+                setTotalPrice(prev => prev + unitPrice * qty);  
             } else {
                 // Track invalid product IDs for cleanup
                 console.log('Invalid cart item key:', key);
@@ -156,15 +160,21 @@ export default function Cart() {
                                             <div className="flex-1 min-w-0">                                                                                                                <h3 className="font-semibold text-gray-900 text-sm md:text-base line-clamp-2 mb-1">                                                             {item.name}       
                                                 </h3>
                                                 <p className="text-xs text-gray-500 mb-2">{item.category}</p>                               
-                                                <div className="flex items-center justify-between mt-3">                                                                                        {/* Price */}     
+                                                <div className="flex items-center justify-between mt-3">
+                                                    {/* Price */}
                                                     <div>
-                                                        <p className="text-lg font-bold text-orange-600">                                                                                               {currency} {item.price.toLocaleString()}                                                                                                </p>
+                                                        <p className="text-lg font-bold text-orange-600">{currency} {(item._cartPrice ?? item.price ?? 0).toLocaleString()}</p>
                                                     </div>
 
-                                                    {/* Quantity Counter */}                                                                                                                    <div className="flex items-center gap-3">                                                                                                       <Counter productId={item._id} />                                                                                                         </div>
+                                                    {/* Quantity Counter */}
+                                                    <div className="flex items-center gap-3">
+                                                        <Counter productId={item._id} />
+                                                    </div>
                                                 </div>
 
-                                                {/* Mobile: Total & Remove */}                                                                                                              <div className="flex items-center justify-between mt-3 md:hidden">                                                                              <p className="text-sm font-semibold text-gray-900">                                                                                             Total: {currency}{(item.price * item.quantity).toLocaleString()}                                                                        </p>
+                                                {/* Mobile: Total & Remove */}
+                                                <div className="flex items-center justify-between mt-3 md:hidden">
+                                                    <p className="text-sm font-semibold text-gray-900">Total: {currency}{((item._cartPrice ?? item.price ?? 0) * item.quantity).toLocaleString()}</p>
                                                     <button
                                                         onClick={() => handleDeleteItemFromCart(item._id)}                                                                                           className="text-red-500 hover:text-red-700 text-sm font-medium"                                                                         >
                                                         REMOVE        
@@ -175,7 +185,7 @@ export default function Cart() {
                                             {/* Desktop: Total Price & Remove */}                                                                                                       <div className="hidden md:flex flex-col items-end justify-between">                                                                             <button
                                                     onClick={() => handleDeleteItemFromCart(item._id)}                                                                                           className="text-gray-400 hover:text-red-500 transition-colors"                                                                          >
                                                     <Trash2Icon size={20} />                                                                                                                </button>
-                                                <p className="text-lg font-bold text-gray-900">                                                                                                 {currency}{(item.price * item.quantity).toLocaleString()}                                                                               </p>
+                                                <p className="text-lg font-bold text-gray-900">{currency}{((item._cartPrice ?? item.price ?? 0) * item.quantity).toLocaleString()}</p>
                                             </div>
                                         </div>
                                     </div>

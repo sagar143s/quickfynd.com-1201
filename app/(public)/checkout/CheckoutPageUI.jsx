@@ -159,9 +159,12 @@ export default function CheckoutPage() {
   
   for (const [key, value] of Object.entries(cartItems || {})) {
     const product = products?.find((p) => String(p._id) === String(key));
-    if (product) {
+    const qty = typeof value === 'number' ? value : value?.quantity || 0;
+    const priceOverride = typeof value === 'number' ? undefined : value?.price;
+    if (product && qty > 0) {
       console.log('Found product for key:', key, product.name);
-      cartArray.push({ ...product, quantity: value });
+      const unitPrice = priceOverride ?? product.price ?? 0;
+      cartArray.push({ ...product, quantity: qty, _cartPrice: unitPrice });
     } else {
       console.log('No product found for key:', key);
     }
@@ -169,7 +172,7 @@ export default function CheckoutPage() {
   
   console.log('Checkout - Final Cart Array:', cartArray);
 
-  const subtotal = cartArray.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = cartArray.reduce((sum, item) => sum + (item._cartPrice ?? item.price ?? 0) * item.quantity, 0);
   const total = subtotal + shipping;
 
   // Load shipping settings - refetch on page load and when products change
