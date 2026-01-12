@@ -51,13 +51,13 @@ export default function HomeCategories() {
       {/* Scrollable Row */}
       <div
         ref={scrollRef}
-        className="flex flex-row items-center justify-start md:justify-between gap-3 md:gap-4 overflow-x-auto scrollbar-hide px-3 md:px-4"
+        className="px-3 md:px-4 items-center gap-3 md:gap-4 flex md:grid md:grid-cols-10 overflow-x-auto md:overflow-visible scrollbar-hide"
       >
         {categories.map((cat, idx) => (
           <Link
             key={cat.label + '-' + idx}
             href={cat.link}
-            className="flex flex-col items-center min-w-[20vw] max-w-[22vw] md:min-w-0 md:w-1/10 cursor-pointer hover:bg-blue-50 hover:scale-105 transition-all duration-200 rounded-2xl p-2 md:p-3 -m-2 md:-m-3"
+            className="flex flex-col items-center min-w-[20vw] max-w-[22vw] md:min-w-0 md:w-full cursor-pointer hover:bg-blue-50 hover:scale-105 transition-all duration-200 rounded-2xl p-2 md:p-3 -m-2 md:-m-3"
           >
             <div className="relative">
               <Image 

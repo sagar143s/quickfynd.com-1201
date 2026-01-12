@@ -23,54 +23,86 @@ export async function POST(request) {
         let emailSubject = '';
         let emailBody = '';
 
-        switch(status) {
-            case 'ORDER_PLACED':
-                emailSubject = `Order Confirmed - #${orderId.slice(0, 8).toUpperCase()}`;
-                emailBody = `
-                    <h2>Thank you for your order, ${customerName}! 🎉</h2>
-                    <p>Your order has been successfully placed and is being processed.</p>
-                    <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
-                `;
-                break;
-            case 'PROCESSING':
-                emailSubject = `Order Processing - #${orderId.slice(0, 8).toUpperCase()}`;
-                emailBody = `
-                    <h2>Your order is being processed, ${customerName}! ⚙️</h2>
-                    <p>We're working on getting your items ready for shipment.</p>
-                    <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
-                `;
-                break;
-            case 'SHIPPED':
-                emailSubject = `Order Shipped - #${orderId.slice(0, 8).toUpperCase()}`;
-                emailBody = `
-                    <h2>Great news, ${customerName}! Your order has been shipped! 🚚</h2>
-                    <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
-                    ${trackingId ? `
-                        <div class="tracking-box">
-                            <h3>📦 Tracking Information</h3>
-                            <p><strong>Tracking ID:</strong> ${trackingId}</p>
-                            <p><strong>Courier:</strong> ${courier}</p>
-                            ${trackingUrl ? `<a href="${trackingUrl}">Track Your Order</a>` : ''}
+        // If only tracking info is provided without status, send tracking update email
+        if (trackingId && !status) {
+            emailSubject = `Tracking Information Added - #${orderId.slice(0, 8).toUpperCase()}`;
+            emailBody = `
+                <h2>Great news, ${customerName}! 📦</h2>
+                <p>Tracking information has been added to your order.</p>
+                <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
+                <div class="tracking-box" style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+                    <h3 style="color: #1e40af; margin-top: 0;">📦 Tracking Information</h3>
+                    <p style="margin: 8px 0;"><strong>Tracking ID:</strong> <code style="background: #dbeafe; padding: 4px 8px; border-radius: 4px; font-size: 14px;">${trackingId}</code></p>
+                    ${courier ? `<p style="margin: 8px 0;"><strong>Courier:</strong> ${courier}</p>` : ''}
+                    ${trackingUrl ? `
+                        <div style="margin-top: 16px;">
+                            <a href="${trackingUrl}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Track Your Order</a>
                         </div>
                     ` : ''}
-                `;
-                break;
-            case 'DELIVERED':
-                emailSubject = `Order Delivered - #${orderId.slice(0, 8).toUpperCase()}`;
-                emailBody = `
-                    <h2>Your order has been delivered, ${customerName}! ✅</h2>
-                    <p>We hope you enjoy your purchase. Thank you for shopping with us!</p>
-                    <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
-                `;
-                break;
-            default:
-                emailSubject = `Order Update - #${orderId.slice(0, 8).toUpperCase()}`;
-                emailBody = `
-                    <h2>Order Update for ${customerName}</h2>
-                    <p>Your order status has been updated.</p>
-                    <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
-                    <p><strong>Status:</strong> ${status}</p>
-                `;
+                </div>
+            `;
+        } else {
+            switch(status) {
+                case 'ORDER_PLACED':
+                    emailSubject = `Order Confirmed - #${orderId.slice(0, 8).toUpperCase()}`;
+                    emailBody = `
+                        <h2>Thank you for your order, ${customerName}! 🎉</h2>
+                        <p>Your order has been successfully placed and is being processed.</p>
+                        <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
+                    `;
+                    break;
+                case 'PROCESSING':
+                    emailSubject = `Order Processing - #${orderId.slice(0, 8).toUpperCase()}`;
+                    emailBody = `
+                        <h2>Your order is being processed, ${customerName}! ⚙️</h2>
+                        <p>We're working on getting your items ready for shipment.</p>
+                        <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
+                    `;
+                    break;
+                case 'SHIPPED':
+                    emailSubject = `Order Shipped - #${orderId.slice(0, 8).toUpperCase()}`;
+                    emailBody = `
+                        <h2>Great news, ${customerName}! Your order has been shipped! 🚚</h2>
+                        <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
+                        ${trackingId ? `
+                            <div class="tracking-box" style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+                                <h3 style="color: #1e40af; margin-top: 0;">📦 Tracking Information</h3>
+                                <p style="margin: 8px 0;"><strong>Tracking ID:</strong> <code style="background: #dbeafe; padding: 4px 8px; border-radius: 4px;">${trackingId}</code></p>
+                                ${courier ? `<p style="margin: 8px 0;"><strong>Courier:</strong> ${courier}</p>` : ''}
+                                ${trackingUrl ? `
+                                    <div style="margin-top: 16px;">
+                                        <a href="${trackingUrl}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Track Your Order</a>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                    `;
+                    break;
+                case 'DELIVERED':
+                    emailSubject = `Order Delivered - #${orderId.slice(0, 8).toUpperCase()}`;
+                    emailBody = `
+                        <h2>Your order has been delivered, ${customerName}! ✅</h2>
+                        <p>We hope you enjoy your purchase. Thank you for shopping with us!</p>
+                        <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
+                    `;
+                    break;
+                default:
+                    emailSubject = `Order Update - #${orderId.slice(0, 8).toUpperCase()}`;
+                    emailBody = `
+                        <h2>Order Update for ${customerName}</h2>
+                        <p>Your order status has been updated.</p>
+                        <div class="order-id">#${orderId.slice(0, 8).toUpperCase()}</div>
+                        <p><strong>Status:</strong> ${status}</p>
+                        ${trackingId ? `
+                            <div class="tracking-box" style="background: #eff6ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+                                <h3 style="color: #1e40af; margin-top: 0;">📦 Tracking Information</h3>
+                                <p style="margin: 8px 0;"><strong>Tracking ID:</strong> ${trackingId}</p>
+                                ${courier ? `<p style="margin: 8px 0;"><strong>Courier:</strong> ${courier}</p>` : ''}
+                                ${trackingUrl ? `<a href="${trackingUrl}" style="display: inline-block; background: #3b82f6; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; margin-top: 8px;">Track Order</a>` : ''}
+                            </div>
+                        ` : ''}
+                    `;
+            }
         }
 
         // Add order items to email

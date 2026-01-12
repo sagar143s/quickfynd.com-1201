@@ -287,6 +287,24 @@ export default function DashboardOrdersPage() {
                                   <span className="font-mono font-semibold text-slate-800">{order.trackingId}</span>
                                 </div>
                               )}
+                              {order.delhivery?.expected_delivery_date && (
+                                <div className="flex">
+                                  <span className="text-slate-600 w-24 font-medium">Expected:</span>
+                                  <span className="font-semibold text-green-700">{new Date(order.delhivery.expected_delivery_date).toLocaleDateString()}</span>
+                                </div>
+                              )}
+                              {order.delhivery?.current_status && (
+                                <div className="flex">
+                                  <span className="text-slate-600 w-24 font-medium">Status:</span>
+                                  <span className="font-semibold text-blue-700">{order.delhivery.current_status}</span>
+                                </div>
+                              )}
+                              {order.delhivery?.current_status_location && (
+                                <div className="flex">
+                                  <span className="text-slate-600 w-24 font-medium">Location:</span>
+                                  <span className="font-semibold text-slate-800">{order.delhivery.current_status_location}</span>
+                                </div>
+                              )}
                               {order.trackingUrl && (
                                 <div className="flex gap-3 mt-3 pt-3 border-t border-blue-200">
                                   <a 
@@ -303,6 +321,23 @@ export default function DashboardOrdersPage() {
                                 </div>
                               )}
                             </div>
+
+                            {/* Delhivery Live Updates Timeline */}
+                            {order.delhivery?.events && order.delhivery.events.length > 0 && (
+                              <div className="border-t border-blue-200 mt-4 pt-4">
+                                <p className="text-xs font-semibold text-slate-600 mb-3">📦 Shipment Timeline</p>
+                                <div className="space-y-3 max-h-64 overflow-y-auto">
+                                  {order.delhivery.events.slice(0, 8).map((event, idx) => (
+                                    <div key={idx} className="text-xs border-l-2 border-blue-400 pl-3 py-2 bg-white rounded-r px-2">
+                                      <div className="font-semibold text-slate-800">{event.status || 'Update'}</div>
+                                      {event.location && <div className="text-slate-600 text-xs mt-0.5">📍 {event.location}</div>}
+                                      <div className="text-slate-500 text-xs mt-1">{new Date(event.time).toLocaleString()}</div>
+                                      {event.remarks && <div className="text-slate-600 italic text-xs mt-1">💬 {event.remarks}</div>}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 

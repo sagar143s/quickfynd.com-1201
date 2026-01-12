@@ -178,4 +178,4 @@ Potential additions:
 
 For email-related issues:
 - Resend Documentation: https://resend.com/docs
-- Contact: quickfynd.com@gmail.com
+- Contact: support@quickfynd.com

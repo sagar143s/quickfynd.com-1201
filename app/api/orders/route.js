@@ -11,6 +11,7 @@ import Store from '@/models/Store';
 import Coupon from '@/models/Coupon';
 import GuestUser from '@/models/GuestUser';
 import { sendOrderConfirmationEmail } from '@/lib/email';
+import { fetchNormalizedDelhiveryTracking } from '@/lib/delhivery';
 
 const PaymentMethod = {
     COD: 'COD',
@@ -341,6 +342,7 @@ export async function POST(request) {
                         email: customerEmail,
                         name: customerName,
                         orderId: order._id,
+                        shortOrderNumber: order.shortOrderNumber,
                         total: order.total,
                         orderItems: order.orderItems,
                         shippingAddress: order.shippingAddress,
@@ -351,6 +353,7 @@ export async function POST(request) {
                         email: customerEmail,
                         name: customerName,
                         orderId: order._id,
+                        shortOrderNumber: order.shortOrderNumber,
                         total: order.total,
                         orderItems: order.orderItems,
                         shippingAddress: order.shippingAddress,
@@ -444,7 +447,7 @@ export async function GET(request) {
         if (orderId) {
             console.log('GET /api/orders: Fetching order by orderId:', orderId);
             try {
-                const order = await Order.findById(orderId)
+                let order = await Order.findById(orderId)
                     .populate({
                         path: 'orderItems.productId',
                         model: 'Product'
@@ -455,6 +458,12 @@ export async function GET(request) {
                 if (!order) {
                     console.log('GET /api/orders: Order not found');
                     return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+                }
+                
+                // Ensure shortOrderNumber exists (for old orders without it)
+                if (!order.shortOrderNumber) {
+                    const hex = order._id.toString().slice(-6);
+                    order.shortOrderNumber = parseInt(hex, 16);
                 }
                 
                 console.log('GET /api/orders: Order found, isGuest:', order.isGuest);
@@ -506,7 +515,16 @@ export async function GET(request) {
         .skip(offset)
         .lean();
 
-        return NextResponse.json({ orders });
+        // Ensure all orders have shortOrderNumber calculated
+        const enrichedOrders = orders.map(order => {
+            if (!order.shortOrderNumber) {
+                const hex = order._id.toString().slice(-6);
+                order.shortOrderNumber = parseInt(hex, 16);
+            }
+            return order;
+        });
+
+        return NextResponse.json({ orders: enrichedOrders });
     } catch (error) {
         console.error(error);
         return NextResponse.json({ error: error.message }, { status: 400 });

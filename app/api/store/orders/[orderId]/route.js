@@ -30,6 +30,7 @@ export async function PUT(request, { params }) {
         const storeId = await authSeller(userId);
         const { orderId } = await params;
 
+        // Read update payload
         const { status, trackingId, trackingUrl, courier } = await request.json();
 
         // Verify the order belongs to this store
@@ -65,8 +66,15 @@ export async function PUT(request, { params }) {
             { new: true }
         ).lean();
 
-        // Send email notification if status changed or tracking added
-        if (status || trackingId) {
+        // Decide what status value to send to the email service:
+        // - If the request explicitly changed status, use the updated status.
+        // - If only tracking was added (no status field in body), send
+        //   "no status" so the notification route can treat this as a
+        //   pure tracking/AWB update email.
+        const statusForEmail = (typeof status === 'undefined') ? null : updatedOrder.status;
+
+        // Send email notification if status was included or tracking was added
+        if (typeof status !== 'undefined' || typeof trackingId !== 'undefined') {
             try {
                 // Call email notification API
                 await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/notifications/order-status`, {
@@ -78,7 +86,7 @@ export async function PUT(request, { params }) {
                         orderId: updatedOrder._id.toString(),
                         email: existingOrder.userId.email,
                         customerName: existingOrder.userId.name,
-                        status: updatedOrder.status,
+                        status: statusForEmail,
                         trackingId: updatedOrder.trackingId,
                         trackingUrl: updatedOrder.trackingUrl,
                         courier: updatedOrder.courier,

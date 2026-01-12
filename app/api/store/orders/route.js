@@ -5,6 +5,7 @@ import Order from '@/models/Order';
 import Product from '@/models/Product';
 import User from '@/models/User';
 import Address from '@/models/Address';
+import { fetchNormalizedDelhiveryTracking } from '@/lib/delhivery';
 
 // Debug log helper
 function debugLog(...args) {
@@ -60,6 +61,9 @@ export async function GET(request){
     console.log('[ORDER API ROUTE] Route hit');
     try {
         await connectDB();
+
+        const { searchParams } = new URL(request.url);
+        const includeDelhivery = searchParams.get('withDelhivery') !== 'false';
         
         // Firebase Auth: Extract token from Authorization header
         const authHeader = request.headers.get('authorization');
@@ -139,7 +143,38 @@ export async function GET(request){
             });
         }
 
-        return NextResponse.json({orders})
+        let enrichedOrders = orders;
+        if (includeDelhivery) {
+            const shouldFetchDelhivery = (order) => {
+                const trackingId = order.trackingId || order.awb || order.airwayBillNo;
+                const courier = (order.courier || '').toLowerCase();
+                // Only stop fetching once an order is fully delivered or returned.
+                const isTerminal = ['DELIVERED', 'RETURNED'].includes(order.status);
+                return Boolean(trackingId) && (courier.includes('delhivery') || !order.trackingUrl) && !isTerminal;
+            };
+
+            enrichedOrders = await Promise.all(orders.map(async (order) => {
+                if (!shouldFetchDelhivery(order)) return order;
+                const trackingId = order.trackingId || order.awb || order.airwayBillNo;
+                try {
+                    const normalized = await fetchNormalizedDelhiveryTracking(trackingId);
+                    if (normalized) {
+                        return {
+                            ...order,
+                            courier: normalized.courier || order.courier,
+                            trackingId: normalized.trackingId || order.trackingId,
+                            trackingUrl: normalized.trackingUrl || order.trackingUrl,
+                            delhivery: normalized.delhivery
+                        };
+                    }
+                } catch (dlErr) {
+                    debugLog('Delhivery enrichment failed for order', order._id, dlErr?.message || dlErr);
+                }
+                return order;
+            }));
+        }
+
+        return NextResponse.json({orders: enrichedOrders})
     } catch (error) {
         console.error('[ORDER API ERROR]', error);
         debugLog('API error:', error);

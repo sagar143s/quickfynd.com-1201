@@ -11,6 +11,7 @@ function TrackOrderPageInner() {
   const [loading, setLoading] = useState(false)
   const [order, setOrder] = useState(null)
   const [notFound, setNotFound] = useState(false)
+  const [forceDelhivery, setForceDelhivery] = useState(false)
 
   useEffect(() => {
     const orderId = searchParams.get("orderId");
@@ -34,6 +35,7 @@ function TrackOrderPageInner() {
       const params = new URLSearchParams()
       if (phoneNumber.trim()) params.append('phone', phoneNumber.trim())
       if (awbNumber.trim()) params.append('awb', awbNumber.trim())
+      if (forceDelhivery) params.append('carrier', 'delhivery')
       
       const res = await axios.get(`/api/track-order?${params.toString()}`)
       if (res.data.success && res.data.order) {
@@ -44,8 +46,27 @@ function TrackOrderPageInner() {
       }
     } catch (error) {
       console.error('Track order error:', error)
+      // Auto-retry Delhivery when order not found but AWB provided
+      const status = error?.response?.status
+      const msg = error?.response?.data?.message
+      if (!forceDelhivery && awbNumber.trim() && status === 404) {
+        try {
+          const retry = await axios.get(`/api/track-order?carrier=delhivery&awb=${encodeURIComponent(awbNumber.trim())}`)
+          if (retry.data?.success && retry.data?.order) {
+            setOrder(retry.data.order)
+            setNotFound(false)
+            toast.dismiss()
+            return
+          }
+        } catch (e2) {
+          // show a clearer message if token missing
+          const m2 = e2?.response?.data?.message
+          toast.error(m2 || msg || 'Order not found')
+        }
+      } else {
+        toast.error(msg || 'Order not found')
+      }
       setNotFound(true)
-      toast.error(error.response?.data?.message || 'Order not found')
     } finally {
       setLoading(false)
     }
@@ -149,6 +170,10 @@ function TrackOrderPageInner() {
                 />
                 <p className="text-xs text-slate-500 mt-1">You can use your AWB Number, full Order ID, short Order No, or your phone number to track your order. All these values will work here and in your dashboard or emails.</p>
               </div>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" className="accent-blue-600" checked={forceDelhivery} onChange={(e)=>setForceDelhivery(e.target.checked)} />
+                Track via Delhivery directly (AWB)
+              </label>
               <button
                 type="submit"
                 disabled={loading}
@@ -173,6 +198,12 @@ function TrackOrderPageInner() {
           {/* Order Details */}
           {order && (
             <div className="space-y-6">
+              {/* Tracking not ready notice */}
+              {!order.trackingId && !order.delhivery && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-yellow-800 text-sm">
+                  Shipment hasn\'t been created yet. You\'ll see live tracking here once the courier AWB is generated.
+                </div>
+              )}
               {/* Order Status */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -214,7 +245,7 @@ function TrackOrderPageInner() {
               </div>
 
               {/* Tracking Info */}
-              {(order.trackingId || order.trackingUrl || order.courier) && (
+              {(order.trackingId || order.trackingUrl || order.courier || order.delhivery) && (
                 <>
                   <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
@@ -236,6 +267,12 @@ function TrackOrderPageInner() {
                           <span className="font-mono text-slate-800 bg-white px-3 py-1 rounded">{order.trackingId}</span>
                         </div>
                       )}
+                      {order.delhivery?.expected_delivery_date && (
+                        <div className="flex items-center gap-3">
+                          <span className="text-slate-600 font-medium min-w-[120px]">Expected Delivery:</span>
+                          <span className="text-slate-800">{new Date(order.delhivery.expected_delivery_date).toLocaleString()}</span>
+                        </div>
+                      )}
                       {order.trackingUrl && (
                         <div className="flex items-center gap-3">
                           <span className="text-slate-600 font-medium min-w-[120px]">Track Shipment:</span>
@@ -254,6 +291,28 @@ function TrackOrderPageInner() {
                       )}
                     </div>
                   </div>
+              {/* Delhivery Timeline */}
+              {order.delhivery?.events?.length > 0 && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Shipment Updates</h3>
+                  <div className="relative">
+                    <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200"/>
+                    <ul className="space-y-4">
+                      {order.delhivery.events.map((ev, idx) => (
+                        <li key={idx} className="relative pl-10">
+                          <span className="absolute left-2 top-1.5 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow"/>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                            <div className="font-medium text-slate-800">{ev.status}</div>
+                            <div className="text-xs text-slate-500">{new Date(ev.time).toLocaleString()}</div>
+                          </div>
+                          <div className="text-sm text-slate-600">{ev.location}</div>
+                          {ev.remarks && <div className="text-xs text-slate-500 mt-0.5">{ev.remarks}</div>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
                   {/* More tracking details/help */}
                   <div className="bg-slate-100 border border-slate-200 rounded-xl p-4 mt-4 text-sm text-slate-700">
                     <p>
